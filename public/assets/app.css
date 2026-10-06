@@ -1,0 +1,98 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f6f7fb; --surface: #fff; --text: #1d1f27; --muted: #6b7280;
+  --accent: #3b6cf6; --shadow: 0 4px 10px rgba(0,0,0,.12);
+  --error: #d93025; --backdrop: rgba(0,0,0,.4); --note-filter: none;
+}
+/* Donkere modus: volgt de instelling van de browser/het systeem */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161c; --surface: #1f222b; --text: #e8e9ee; --muted: #9aa0ad; --accent: #5b86ff;
+    --shadow: 0 4px 12px rgba(0,0,0,.5);
+    --error: #ff7a6e; --backdrop: rgba(0,0,0,.65);
+    --note-filter: brightness(.93) saturate(.95); /* pastelkleuren minder fel, tekst blijft donker */
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: sans-serif; background: var(--bg); color: var(--text); }
+.toolbar { position: fixed; top: .75rem; right: 1.5rem; z-index: 10000; display: flex; align-items: center; gap: .75rem; }
+.toolbar .primary { box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.status { font-size: .85rem; color: var(--muted); }
+.split { position: relative; }
+.menu { position: absolute; top: calc(100% + 6px); right: 0; min-width: 11rem; display: flex; flex-direction: column; padding: .25rem; border-radius: 10px; background: var(--surface); box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+.menu[hidden] { display: none; }
+.menu button { text-align: left; border: none; border-radius: 8px; background: transparent; }
+.menu button:hover, .menu button:focus-visible { background: color-mix(in srgb, var(--accent) 15%, transparent); outline: none; }
+.status:not(:empty) { padding: .25rem .6rem; border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
+.status.error { color: var(--error); }
+
+input, textarea, button { font: inherit; padding: .5rem .75rem; }
+button { cursor: pointer; border: 1px solid color-mix(in srgb, var(--text) 25%, transparent); border-radius: 8px; background: var(--surface); color: var(--text); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button:focus-visible, .note:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.board { position: relative; height: 100dvh; overflow: auto; }
+
+/* Afbeeldingen: los zwevend, geen venster; alpha blijft doorzichtig */
+.image { position: absolute; margin: 0; cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; outline: none; }
+.image img { display: block; width: 100%; height: 100%; object-fit: fill; pointer-events: none; -webkit-user-drag: none; }
+.image.dragging { cursor: grabbing; }
+.image:focus-within { outline: 1px dashed color-mix(in srgb, var(--text) 55%, transparent); outline-offset: 2px; }
+.image .delete-btn, .image .resize-handle { visibility: hidden; position: absolute; }
+.image:focus-within .delete-btn, .image:focus-within .resize-handle { visibility: visible; }
+.image .delete-btn { top: 6px; right: 6px; width: 28px; height: 28px; padding: 0; line-height: 1; border: none; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+.image .resize-handle { right: 3px; bottom: 3px; width: 18px; height: 18px; border-radius: 4px; cursor: nwse-resize; touch-action: none;
+  background: linear-gradient(135deg, transparent 0 55%, #444 55% 63%, transparent 63% 72%, #444 72% 80%, transparent 80% 89%, #444 89% 97%, transparent 97%), rgba(255,255,255,.75);
+  box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+@media (pointer: coarse) { .image .resize-handle { width: 26px; height: 26px; } }
+
+/* Notities houden hun gekozen kleur met donkere tekst; in de donkere modus iets gedimd */
+.note { position: absolute; width: 262px; min-height: 132px; padding: 1rem; border-radius: 10px; box-shadow: var(--shadow); color: #1d1f27; filter: var(--note-filter); transition: box-shadow .15s; }
+.note-head { position: absolute; top: 0; left: 0; right: 0; height: 3rem; border-radius: 10px 10px 0 0; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.note-head:hover { background: rgba(0,0,0,.04); }
+.note.dragging .note-head { cursor: grabbing; }
+.note.dragging { cursor: grabbing; box-shadow: 0 12px 28px rgba(0,0,0,.35); }
+.note .title-text { display: block; line-height: 1.25rem; margin: 0 3rem .9rem 0; overflow-wrap: anywhere; user-select: none; -webkit-user-select: none; }
+.note .note-actions { position: absolute; top: 1rem; right: .6rem; height: 1.25rem; transform: translateY(-2px); z-index: 1; display: flex; align-items: center; gap: 0; }
+.note .note-actions button { background: transparent; border: none; padding: 0 3px; height: 1.25rem; font-size: .95rem; line-height: 1; opacity: .7; border-radius: 8px; }
+.note .note-actions button:hover, .note .note-actions button:focus-visible { opacity: 1; background: rgba(0,0,0,.08); }
+.note .body-text { line-height: 1.25; overflow-wrap: anywhere; }
+.note .body-text > :first-child { margin-top: 0; }
+.note .body-text p { margin: .5rem 0; }
+.note .body-text ul, .note .body-text ol { margin: .4rem 0; padding-left: 1.1rem; }
+.note a { color: #444; text-decoration: none; }
+.note a:hover, .note a:focus-visible { text-decoration: underline; }
+
+dialog { border: none; border-radius: 12px; padding: 1.25rem; background: var(--surface); color: var(--text); box-shadow: 0 20px 50px rgba(0,0,0,.35); width: min(92vw, 420px); }
+dialog::backdrop { background: var(--backdrop); }
+dialog h2 { margin: 0 0 .25rem; font-size: 1.2rem; }
+form { display: flex; flex-direction: column; gap: .75rem; }
+label { display: flex; flex-direction: column; gap: .25rem; font-size: .9rem; color: var(--muted); }
+label input, label textarea { color: var(--text); background: var(--bg); border: 1px solid color-mix(in srgb, var(--text) 25%, transparent); border-radius: 8px; }
+.field { display: flex; flex-direction: column; gap: .25rem; }
+.field-label { font-size: .9rem; color: var(--muted); }
+.fmt-bar { display: flex; align-items: center; gap: .25rem; }
+.fmt-bar button { min-width: 2.2rem; padding: .25rem .5rem; line-height: 1.2; }
+.fmt-bar button:hover { background: color-mix(in srgb, var(--accent) 15%, var(--surface)); }
+.fmt-sep { width: 1px; align-self: stretch; margin: .2rem .25rem; background: color-mix(in srgb, var(--text) 25%, transparent); }
+.field textarea { color: var(--text); background: var(--bg); border: 1px solid color-mix(in srgb, var(--text) 25%, transparent); border-radius: 8px; }
+textarea { width: 100%; height: 200px; resize: vertical; }
+menu { display: flex; justify-content: flex-end; gap: .5rem; padding: 0; margin: 0; }
+.swatches { display: flex; gap: .4rem; flex-wrap: wrap; }
+.swatches button { width: 28px; height: 28px; padding: 0; border-radius: 50%; }
+.swatches button[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 2px; }
+input[type=color] { padding: 0; height: 2.2rem; width: 100%; }
+.error { color: var(--error); margin: 0; font-size: .9rem; }
+
+.toast { position: fixed; left: 50%; bottom: 1.25rem; transform: translateX(-50%); z-index: 20000; display: flex; align-items: center; gap: .75rem; padding: .6rem .9rem; border-radius: 10px; background: #2b2e38; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+.toast[hidden] { display: none; }
+.toast button { background: transparent; color: #8ab4ff; border: none; padding: .25rem .5rem; }
+
+@media (max-width: 600px) {
+  .toolbar { top: .5rem; right: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media (prefers-color-scheme: dark) {
+  .toast { box-shadow: 0 0 0 1px rgba(255,255,255,.12), 0 8px 24px rgba(0,0,0,.5); }
+}
