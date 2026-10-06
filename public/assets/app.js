@@ -67,6 +67,20 @@ function buildItem(n) {
   return el;
 }
 
+// Tekstkleur op basis van de achtergrond: kies wit of de donkere tekstkleur, wat het meeste contrast geeft (WCAG)
+const DARK_TEXT = '#1d1f27';
+const luminance = (hex) => {
+  const v = parseInt(hex.slice(1), 16);
+  const lin = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+  return 0.2126 * lin((v >> 16) & 255) + 0.7152 * lin((v >> 8) & 255) + 0.0722 * lin(v & 255);
+};
+const DARK_TEXT_L = luminance(DARK_TEXT);
+function needsLightText(hex) {
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) return false;
+  const L = luminance(hex);
+  return 1.05 / (L + 0.05) > (L + 0.05) / (DARK_TEXT_L + 0.05); // contrast met wit > contrast met donker
+}
+
 function paint(el, n) {
   el.style.left = n.x + 'px';
   el.style.top = n.y + 'px';
@@ -76,6 +90,7 @@ function paint(el, n) {
     return;
   }
   el.style.background = n.color;
+  el.classList.toggle('on-dark', needsLightText(n.color));
   el.querySelector('.title-text').textContent = n.title;
   el.setAttribute('aria-label', n.title);
   // n.html komt van Parsedown in safe mode (server-side gesaniteerd)
