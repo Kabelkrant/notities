@@ -75,8 +75,8 @@ const luminance = (hex) => {
   return 0.2126 * lin((v >> 16) & 255) + 0.7152 * lin((v >> 8) & 255) + 0.0722 * lin(v & 255);
 };
 const DARK_TEXT_L = luminance(DARK_TEXT);
-// Voorkeur voor donkere tekst: 1 = puur het grootste contrast, lager = pas later wit (0.3 => alleen bij donkere achtergronden, luminantie < ~0,09)
-const LIGHT_TEXT_BIAS = 0.3;
+// Voorkeur voor donkere tekst: 1 = puur het grootste contrast, lager = pas later wit (0.8 => omslag bij luminantie ~0,18; lager dan ~0,6 geeft slecht leesbare donkere tekst op middentonen)
+const LIGHT_TEXT_BIAS = 0.8;
 function needsLightText(hex) {
   if (!/^#[0-9a-f]{6}$/i.test(hex)) return false;
   const L = luminance(hex);
