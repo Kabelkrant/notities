@@ -48,7 +48,7 @@ button:focus-visible, .note:focus-visible { outline: 2px solid var(--accent); ou
 @media (pointer: coarse) { .image .resize-handle { width: 26px; height: 26px; } }
 
 /* Notities houden hun gekozen kleur met donkere tekst; in de donkere modus iets gedimd */
-.note { position: absolute; width: 262px; min-height: 132px; padding: 1rem; border-radius: 10px; box-shadow: var(--shadow); color: #1d1f27; filter: var(--note-filter); transition: box-shadow .15s; }
+.note { position: absolute; width: 262px; min-height: 132px; padding: 1rem; border-radius: 10px; box-shadow: var(--shadow); color: #1d1f27; filter: var(--note-filter); isolation: isolate; /* eigen stapelcontext: knoppen blijven binnen hun notitie */ transition: box-shadow .15s; }
 .note-head { position: absolute; top: 0; left: 0; right: 0; height: 3rem; border-radius: 10px 10px 0 0; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
 .note-head:hover { background: rgba(0,0,0,.04); }
 .note.dragging .note-head { cursor: grabbing; }
@@ -56,6 +56,13 @@ button:focus-visible, .note:focus-visible { outline: 2px solid var(--accent); ou
 .note .title-text { display: block; line-height: 1.25rem; margin: 0 3rem .9rem 0; overflow-wrap: anywhere; user-select: none; -webkit-user-select: none; }
 .note .note-actions { position: absolute; top: 1rem; right: .6rem; height: 1.25rem; transform: translateY(-2px); z-index: 1; display: flex; align-items: center; gap: 0; }
 .note .note-actions button { background: transparent; border: none; padding: 0 3px; height: 1.25rem; font-size: .95rem; line-height: 1; opacity: .7; border-radius: 8px; }
+/* Bewerken/verwijderen alleen zichtbaar als de notitie focus heeft (aangeklikt, of via Tab) */
+.note .note-actions { visibility: hidden; opacity: 0; transition: opacity .12s, visibility .12s; }
+.note:focus-within .note-actions { visibility: visible; opacity: 1; }
+/* Grotere klikzone rond de knoppen, zonder dat het uiterlijk verandert */
+.note .note-actions button { position: relative; }
+.note .note-actions button::after { content: ''; position: absolute; inset: -7px -3px; }
+@media (pointer: coarse) { .note .note-actions button::after { inset: -10px -5px; } }
 .note .note-actions button:hover, .note .note-actions button:focus-visible { opacity: 1; background: rgba(0,0,0,.08); }
 .note .body-text { line-height: 1.25; overflow-wrap: anywhere; }
 .note .body-text > :first-child { margin-top: 0; }
