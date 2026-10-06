@@ -75,10 +75,12 @@ const luminance = (hex) => {
   return 0.2126 * lin((v >> 16) & 255) + 0.7152 * lin((v >> 8) & 255) + 0.0722 * lin(v & 255);
 };
 const DARK_TEXT_L = luminance(DARK_TEXT);
+// Voorkeur voor donkere tekst: 1 = puur het grootste contrast, lager = pas later wit (0.3 => alleen bij donkere achtergronden, luminantie < ~0,09)
+const LIGHT_TEXT_BIAS = 0.3;
 function needsLightText(hex) {
   if (!/^#[0-9a-f]{6}$/i.test(hex)) return false;
   const L = luminance(hex);
-  return 1.05 / (L + 0.05) > (L + 0.05) / (DARK_TEXT_L + 0.05); // contrast met wit > contrast met donker
+  return (1.05 / (L + 0.05)) * LIGHT_TEXT_BIAS > (L + 0.05) / (DARK_TEXT_L + 0.05); // contrast met wit (gewogen) > contrast met donker
 }
 
 function paint(el, n) {
@@ -195,7 +197,7 @@ function openDialog(n) {
   form.title.focus();
 }
 $('cancelBtn').addEventListener('click', () => dialog.close());
-dialog.addEventListener('mousedown', (e) => { if (e.target === dialog) dialog.close(); });
+// De dialoog sluit via Annuleren, Opslaan of Escape; niet door buiten het venster te klikken (dat gaf verloren invoer).
 
 /* ---------- Opmaak-toolbar (Markdown in de textarea) ---------- */
 const bodyField = form.body;
