@@ -61,7 +61,7 @@ button:focus-visible, .note:focus-visible { outline: 2px solid var(--accent); ou
 .note .body-text > :first-child { margin-top: 0; }
 .note .body-text p { margin: .5rem 0; }
 .note .body-text ul, .note .body-text ol { margin: .4rem 0; padding-left: 1.1rem; }
-.note a { color: #444; text-decoration: none; }
+.note a { color: #1a3573; text-decoration: none; }
 /* Donkere notitiekleur: lichte tekst (wordt door app.js gezet op basis van contrast) */
 .note.on-dark { color: #fff; }
 .note.on-dark a { color: #cfe0ff; }
