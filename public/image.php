@@ -1,6 +1,12 @@
 <?php
 declare(strict_types=1);
 require __DIR__ . '/../config.php';
+require __DIR__ . '/../src/Auth.php';
+
+if (!Auth::check()) {
+    http_response_code(401);
+    exit;
+}
 
 $f = $_GET['f'] ?? '';
 if (!preg_match('/^[a-f0-9]{32}\.(png|jpg|gif|webp|avif)$/', $f, $m)) {
@@ -18,5 +24,5 @@ header('Content-Length: ' . filesize($path));
 header('X-Content-Type-Options: nosniff');
 header('X-Robots-Tag: noindex, nofollow, noarchive');
 header('Content-Security-Policy: default-src \'none\'');
-header('Cache-Control: public, max-age=31536000, immutable'); // bestandsnaam is willekeurig en uniek
+header('Cache-Control: private, max-age=31536000, immutable'); // bestandsnaam is willekeurig en uniek; alleen in de browser cachen
 readfile($path);

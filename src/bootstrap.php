@@ -6,6 +6,8 @@ require __DIR__ . '/../parsedown.php';
 require __DIR__ . '/JsonStore.php';
 require __DIR__ . '/NoteParsedown.php';
 require __DIR__ . '/Guard.php';
+require __DIR__ . '/Updater.php';
+require __DIR__ . '/Auth.php';
 
 // Limieten; overschrijfbaar in config.php (daar vóór het laden van deze file gedefinieerd).
 foreach ([

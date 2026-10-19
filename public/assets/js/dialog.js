@@ -1,4 +1,4 @@
-import { COLORS, items, els } from './state.js';
+import { COLORS, items, els, state } from './state.js';
 import { $, board, dialog, form } from './ui.js';
 import { api } from './api.js';
 import { upsert } from './render.js';
@@ -39,7 +39,7 @@ $('cancelBtn').addEventListener('click', () => dialog.close());
 // De dialoog sluit via Annuleren, Opslaan of Escape; niet door buiten het venster te klikken (dat gaf verloren invoer).
 
 export function freeSpot() {
-  const W = 282, H = 200, cols = Math.max(1, Math.floor((board.clientWidth - 20) / W));
+  const W = 282, H = 200, cols = Math.max(1, Math.floor((board.clientWidth / state.zoom - 20) / W));
   const taken = [...items.values()];
   for (let i = 0; i < 500; i++) {
     const x = 20 + (i % cols) * W, y = 20 + Math.floor(i / cols) * H;

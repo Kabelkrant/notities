@@ -1,10 +1,9 @@
 import { boot } from './js/state.js';
-import { applyServerItems } from './js/render.js';
-import './js/sync.js';
-import './js/menu.js';
-import './js/dialog.js';
-import './js/upload.js';
-import './js/actions.js';
-import './js/drag.js';
 
-applyServerItems(boot.notes);
+if (boot.auth) {
+  const { applyServerItems } = await import('./js/render.js');
+  await Promise.all(['sync', 'menu', 'zoom', 'dialog', 'upload', 'actions', 'drag'].map((m) => import(`./js/${m}.js`)));
+  applyServerItems(boot.notes);
+} else {
+  await import('./js/login.js');
+}

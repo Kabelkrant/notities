@@ -83,6 +83,8 @@ function handle_upload(): never {
 
 try {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        if (!Auth::check()) respond(['error' => 'Niet ingelogd'], 401);
+        if (isset($_GET['about'])) respond(Updater::about());
         $notes = all_notes();
         $version = notes_version($notes);
         if (($_GET['v'] ?? '') === $version) {
@@ -107,6 +109,7 @@ try {
     }
 
     if (str_starts_with($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data')) {
+        if (!Auth::check()) respond(['error' => 'Niet ingelogd'], 401);
         if (($retry = Guard::rateLimit('upload', RATE_UPLOADS_PER_MIN)) !== null) {
             too_many($retry);
         }
@@ -118,8 +121,25 @@ try {
         respond(['error' => 'Ongeldige invoer'], 400);
     }
 
-    $store = store();
     $action = $in['action'] ?? '';
+
+    if ($action === 'login') {
+        if (($retry = Guard::rateLimit('login', 6)) !== null) too_many($retry);
+        if (!Auth::configured()) respond(['error' => 'Er is nog geen wachtwoord ingesteld (zie README)'], 503);
+        if (!Auth::verify((string)($in['password'] ?? ''))) {
+            usleep(500000); // remt gokken af
+            respond(['error' => 'Onjuist wachtwoord'], 403);
+        }
+        Auth::login();
+        respond(['ok' => true]);
+    }
+    if ($action === 'logout') {
+        Auth::logout();
+        respond(['ok' => true]);
+    }
+    if (!Auth::check()) respond(['error' => 'Niet ingelogd'], 401);
+
+    $store = store();
     $id = (int)($in['id'] ?? 0);
 
     $fields = function () use ($in): array {
@@ -171,6 +191,17 @@ try {
                 'h' => clamp_int($in['h'] ?? 0, MIN_IMAGE_SIZE, MAX_IMAGE_SIZE),
             ]));
             respond(['ok' => true]);
+
+        case 'self_update':
+            if (($retry = Guard::rateLimit('update', 5)) !== null) too_many($retry);
+            if (($why = Updater::blocked()) !== null) respond(['error' => $why], 409);
+            try {
+                $v = Updater::install();
+            } catch (RuntimeException $ex) {
+                error_log('Update mislukt: ' . $ex->getMessage());
+                respond(['error' => 'Bijwerken mislukt: ' . $ex->getMessage()], 500);
+            }
+            respond(['ok' => true, 'version' => $v]);
 
         case 'delete':
             $removed = $store->delete($id);

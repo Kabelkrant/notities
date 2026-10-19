@@ -1,4 +1,5 @@
-import { UNDO_MS, items, els, pendingDelete } from './state.js';
+import { UNDO_MS, GRID, items, els, pendingDelete, state } from './state.js';
+import { snapTo, showGrid } from './snap.js';
 import { board, reportError, showToast, hideToast } from './ui.js';
 import { api } from './api.js';
 import { paint, remove } from './render.js';
@@ -25,10 +26,13 @@ board.addEventListener('keydown', (e) => {
   else if (e.key === 'Delete') softDelete(id);
   else if (e.key.startsWith('Arrow')) {
     e.preventDefault();
-    const step = e.shiftKey ? 50 : 10;
-    n.x = Math.max(0, n.x + (e.key === 'ArrowRight' ? step : e.key === 'ArrowLeft' ? -step : 0));
-    n.y = Math.max(0, n.y + (e.key === 'ArrowDown' ? step : e.key === 'ArrowUp' ? -step : 0));
+    const snapped = state.snap && n.type === 'note';
+    const grid = snapped ? snapTo : (v) => v;
+    const step = snapped ? (e.shiftKey ? 5 * GRID : GRID) : (e.shiftKey ? 50 : 10); // met raster: hele rasterstappen
+    n.x = Math.max(0, grid(n.x + (e.key === 'ArrowRight' ? step : e.key === 'ArrowLeft' ? -step : 0)));
+    n.y = Math.max(0, grid(n.y + (e.key === 'ArrowDown' ? step : e.key === 'ArrowUp' ? -step : 0)));
     paint(item, n);
+    if (snapped) { showGrid(true); clearTimeout(showGrid.t); showGrid.t = setTimeout(() => showGrid(false), 700); }
     clearTimeout(n._saveTimer);
     n._saveTimer = setTimeout(() => saveMove(n), 400);
   }

@@ -8,6 +8,7 @@ export async function poll() {
   if (state.busy || dialog.open) { state.missedWhileBusy = true; return; }
   try {
     const res = await fetch('api.php?v=' + state.version, { cache: 'no-store' });
+    if (res.status === 401) return location.reload();
     if (!res.ok) throw new Error();
     const data = await res.json();
     if (data.changed) {

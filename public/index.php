@@ -3,9 +3,18 @@ declare(strict_types=1);
 require __DIR__ . '/../src/bootstrap.php';
 start_session();
 send_robots_header();
+header('Cache-Control: private, no-store');
 
-$notes = all_notes();
+$authed = Auth::check();
+$appName = Auth::appName();
+$notes = $authed ? all_notes() : [];
+// Zoomniveau uit de cookie 'zoom' (door app geschreven); server zet het meteen, zodat de pagina niet eerst op 100% laadt.
+$zoom = isset($_COOKIE['zoom']) && is_numeric($_COOKIE['zoom']) ? max(0.25, min(3.0, (float)$_COOKIE['zoom'])) : 1.0;
+$snap = ($_COOKIE['snap'] ?? '') === '1';
 $boot = [
+    'auth' => $authed,
+    'snap' => $snap,
+    'zoom' => $zoom,
     'csrf' => csrf_token(),
     'version' => notes_version($notes),
     'notes' => $notes,
@@ -27,25 +36,47 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
   <meta name="theme-color" content="#f6f7fb" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#14161c" media="(prefers-color-scheme: dark)">
   <meta name="robots" content="noindex, nofollow, noarchive">
-  <title>Notities</title>
+  <title><?= e($appName) ?></title>
   <link rel="icon" type="image/png" href="sticky-note.png">
   <link rel="stylesheet" href="assets/app.css?v=<?= $v('assets/app.css') ?>">
 </head>
 <body>
-  <h1 class="sr-only">Kabelkrant Notities</h1>
+  <h1 class="sr-only"><?= e($appName) ?></h1>
+<?php if ($authed): ?>
   <div class="toolbar">
     <span id="status" class="status" role="status" aria-live="polite"></span>
     <div class="split">
-      <button id="newBtn" type="button" class="primary" aria-haspopup="menu" aria-expanded="false" aria-controls="newMenu">+ Nieuw</button>
-      <div id="newMenu" class="menu" role="menu" hidden>
-        <button type="button" role="menuitem" id="newNote">🗒️ Notitie</button>
-        <button type="button" role="menuitem" id="newImage">🖼️ Afbeelding</button>
+      <button id="newBtn" type="button" class="icon-btn add-btn" title="Nieuw" aria-label="Nieuw" aria-haspopup="menu" aria-expanded="false" aria-controls="newMenu">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <div id="newMenu" class="menu" data-align="center" role="menu" hidden>
+        <button type="button" role="menuitem" id="newNote"><span class="ico" aria-hidden="true">🗒️</span> Notitie</button>
+        <button type="button" role="menuitem" id="newImage"><span class="ico" aria-hidden="true">🖼️</span> Afbeelding</button>
+      </div>
+    </div>
+    <div class="zoom-ctl" role="group" aria-label="Zoomen">
+      <button id="zoomOut" type="button" class="icon-btn" title="Uitzoomen" aria-label="Uitzoomen">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10" cy="10" r="6.5"/><path d="m15 15 6 6M7 10h6"/></svg>
+      </button>
+      <button id="zoomIn" type="button" class="icon-btn" title="Inzoomen" aria-label="Inzoomen">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10" cy="10" r="6.5"/><path d="m15 15 6 6M7 10h6M10 7v6"/></svg>
+      </button>
+    </div>
+    <div class="split">
+      <button id="mainBtn" type="button" class="icon-btn" title="Menu" aria-label="Menu" aria-haspopup="menu" aria-expanded="false" aria-controls="mainMenu">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <div id="mainMenu" class="menu" role="menu" hidden>
+        <button type="button" role="menuitem" id="resetZoom"><span class="ico" aria-hidden="true">🔎</span> Reset zoom</button>
+        <button type="button" role="menuitemcheckbox" id="snapToggle" aria-checked="<?= $snap ? 'true' : 'false' ?>"><span class="ico" aria-hidden="true"><span class="check">✓</span></span>Snap to grid</button>
+        <button type="button" role="menuitem" id="aboutBtn"><span class="ico" aria-hidden="true">ℹ️</span> Over</button>
+        <button type="button" role="menuitem" id="logoutBtn"><span class="ico" aria-hidden="true">🔒</span> Uitloggen</button>
       </div>
     </div>
     <input type="file" id="imageInput" accept="image/png,image/jpeg,image/gif,image/webp,image/avif" hidden>
   </div>
 
-  <main class="board" id="board" aria-label="Notitiebord"></main>
+  <main id="board" class="board<?= $snap ? ' snap' : '' ?>" aria-label="Notitiebord" style="--zoom: <?= $zoom ?>"></main>
 
   <dialog id="noteDialog">
     <form id="noteForm" method="dialog">
@@ -76,11 +107,41 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
     </form>
   </dialog>
 
+  <dialog id="aboutDialog" class="about" aria-labelledby="aboutTitle">
+    <form id="aboutForm" method="dialog">
+      <h2 id="aboutTitle">Kabelkrant Notities</h2>
+      <p class="about-version">Versie <strong id="aboutVersion">…</strong></p>
+      <p id="aboutStatus" class="about-status" role="status" aria-live="polite">Controleren op updates…</p>
+      <p id="aboutLatest" class="about-latest"></p>
+      <p class="error" id="updateError" hidden></p>
+      <div class="about-actions">
+        <button type="button" id="updateBtn" class="primary" hidden>Updaten</button>
+        <button type="button" id="aboutClose">Sluiten</button>
+      </div>
+      <a id="aboutRepo" class="about-repo" href="#" target="_blank" rel="noopener noreferrer">GitHub</a>
+    </form>
+  </dialog>
+
   <div id="toast" class="toast" role="status" aria-live="polite" hidden>
     <span id="toastText"></span>
     <button type="button" id="toastAction">Ongedaan maken</button>
   </div>
 
+<?php else: ?>
+  <main id="board" class="board" aria-label="Notitiebord"></main>
+
+  <dialog id="loginDialog" aria-labelledby="loginTitle">
+    <form id="loginForm" method="dialog">
+      <h2 id="loginTitle"><?= e($appName) ?></h2>
+      <label>Wachtwoord <input type="password" name="password" autocomplete="current-password" required autofocus></label>
+      <p class="error" id="loginError" hidden></p>
+      <menu>
+        <button type="submit" class="primary">Inloggen</button>
+      </menu>
+    </form>
+  </dialog>
+
+<?php endif; ?>
   <script type="importmap"><?= json_encode(['imports' => $imports], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
   <script id="boot" type="application/json"><?= json_encode($boot, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
   <script src="assets/app.js?v=<?= $v('assets/app.js') ?>" type="module"></script>

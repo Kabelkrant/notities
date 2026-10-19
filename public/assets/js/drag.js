@@ -2,6 +2,7 @@ import { MIN_SIZE, MAX_SIZE, items, state } from './state.js';
 import { board, reportError } from './ui.js';
 import { api } from './api.js';
 import { poll } from './sync.js';
+import { snapTo, showGrid } from './snap.js';
 
 // Slepen en schalen (Pointer Events)
 let drag = null, resize = null;
@@ -32,24 +33,26 @@ board.addEventListener('pointerdown', (e) => {
 board.addEventListener('pointermove', (e) => {
   if (resize && e.pointerId === resize.id) {
     const { n, item } = resize;
-    n.w = Math.min(MAX_SIZE, Math.max(MIN_SIZE, Math.round(resize.ow + e.clientX - resize.sx)));
-    n.h = Math.min(MAX_SIZE, Math.max(MIN_SIZE, Math.round(resize.oh + e.clientY - resize.sy)));
+    n.w = Math.min(MAX_SIZE, Math.max(MIN_SIZE, Math.round(resize.ow + (e.clientX - resize.sx) / state.zoom)));
+    n.h = Math.min(MAX_SIZE, Math.max(MIN_SIZE, Math.round(resize.oh + (e.clientY - resize.sy) / state.zoom)));
     item.style.width = n.w + 'px';
     item.style.height = n.h + 'px';
     return;
   }
   if (!drag || e.pointerId !== drag.id) return;
-  const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
-  if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+  const dx = (e.clientX - drag.sx) / state.zoom, dy = (e.clientY - drag.sy) / state.zoom; // schermpixels -> bordcoördinaten
+  if (!drag.moved && Math.hypot(dx, dy) * state.zoom < 4) return;
   if (!drag.moved) {
     drag.moved = true; state.busy = true;
     drag.item.classList.add('dragging');
+    showGrid(drag.n.type === 'note');
     const focused = document.activeElement;
     board.appendChild(drag.item); // naar voren; herstel daarna de focus
     if (focused === drag.item) drag.item.focus({ preventScroll: true });
   }
-  drag.n.x = Math.max(0, Math.round(drag.ox + dx));
-  drag.n.y = Math.max(0, Math.round(drag.oy + dy));
+  const grid = drag.n.type === 'note' ? snapTo : (v) => v;
+  drag.n.x = Math.max(0, grid(Math.round(drag.ox + dx)));
+  drag.n.y = Math.max(0, grid(Math.round(drag.oy + dy)));
   drag.item.style.left = drag.n.x + 'px';
   drag.item.style.top = drag.n.y + 'px';
 });
@@ -65,6 +68,7 @@ function endPointer(e) {
   const { n, item, moved } = drag;
   drag = null; state.busy = false;
   item.classList.remove('dragging');
+  showGrid(false);
   if (moved) saveMove(n); // alleen opslaan als er echt is versleept
 }
 board.addEventListener('pointerup', endPointer);

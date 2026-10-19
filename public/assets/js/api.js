@@ -8,6 +8,7 @@ export async function api(payload, opts = {}) {
     keepalive: opts.keepalive || false,
   });
   const data = await res.json().catch(() => ({}));
+  if (res.status === 401) location.reload(); // sessie verlopen: inlogscherm
   if (!res.ok) throw Object.assign(new Error(data.error || `Fout ${res.status}`), { status: res.status });
   return data;
 }

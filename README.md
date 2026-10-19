@@ -21,8 +21,9 @@ parsedown.php  Markdown-library
 ## Installeren
 1. Pak het project uit op de server.
 2. Laat de webroot van de website wijzen naar `public/`. Alles daarbuiten mag niet bereikbaar zijn.
-3. Maak `data/` aan als die ontbreekt en geef de PHP-gebruiker schrijfrechten (bijv. `chmod 700 data`, eigenaar = PHP-gebruiker).
-4. Zorg voor uploadlimieten van minimaal 15 MB:
+3. Kopieer `.env.example` naar `.env` en vul `APP_PASSWORD` in (chmod 600). Zonder wachtwoord blijft de app dicht.
+4. Maak `data/` aan als die ontbreekt en geef de PHP-gebruiker schrijfrechten (bijv. `chmod 700 data`, eigenaar = PHP-gebruiker).
+5. Zorg voor uploadlimieten van minimaal 15 MB:
    - PHP: `upload_max_filesize` en `post_max_size`
    - nginx: `client_max_body_size 15m;`
 
@@ -41,5 +42,6 @@ Alle gegevens staan in `data/` (`notes.json` en `images/`). Neem die map mee voo
 - Teller-bestanden staan in `data/ratelimit/` en ruimen zichzelf op.
 - Aanvullend op serverniveau aan te raden: `limit_req` op `api.php` en `client_max_body_size 15m;` in nginx.
 
-## Let op
-De app heeft **geen login**. Iedereen met de URL kan notities lezen, wijzigen en verwijderen. Zet bij een openbaar bereikbare site bijvoorbeeld Basic Auth in de webserver.
+## Inloggen
+De hele app zit achter één wachtwoord (geen gebruikersnaam). Het wachtwoord staat leesbaar als `APP_PASSWORD` in `.env` (niet in git, rechten 600). De naam in het inlogscherm en op het tabblad stel je in met `APP_NAME` in dezelfde file. Na inloggen onthoudt de browser dit 30 dagen via een ondertekende cookie (`kn_auth`); de sleutel is afgeleid van het wachtwoord, dus een nieuw wachtwoord in `.env` logt iedereen uit. Uitloggen kan via het menu. Notities, afbeeldingen en de API geven zonder login `401`. Foute pogingen worden vertraagd en beperkt tot 6 per minuut per IP.
+Gebruik HTTPS, anders reist het wachtwoord leesbaar over het netwerk.
