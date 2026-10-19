@@ -89,7 +89,8 @@ async function uploadImage(file) {
     const fd = new FormData();
     fd.append('file', file, file.name || 'afbeelding');
     if (size) { fd.append('w', size.w); fd.append('h', size.h); }
-    const { x, y } = freeSpot();
+    const fit = size ? Math.min(1, 262 / Math.max(size.w, size.h)) : 1; // het beginformaat dat de server toekent
+    const { x, y } = size ? freeSpot(Math.max(40, Math.round(size.w * fit)), Math.max(40, Math.round(size.h * fit))) : freeSpot(262, 262);
     fd.append('x', x); fd.append('y', y);
     const res = await fetch('api.php', { method: 'POST', headers: { 'X-CSRF-Token': csrf }, body: fd });
     const data = await res.json().catch(() => ({}));

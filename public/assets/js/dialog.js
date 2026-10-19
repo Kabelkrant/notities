@@ -38,14 +38,27 @@ export function openDialog(n) {
 $('cancelBtn').addEventListener('click', () => dialog.close());
 // De dialoog sluit via Annuleren, Opslaan of Escape; niet door buiten het venster te klikken (dat gaf verloren invoer).
 
-export function freeSpot() {
-  const W = 282, H = 200, cols = Math.max(1, Math.floor((board.clientWidth / state.zoom - 20) / W));
-  const taken = [...items.values()];
-  for (let i = 0; i < 500; i++) {
-    const x = 20 + (i % cols) * W, y = 20 + Math.floor(i / cols) * H;
-    if (!taken.some((n) => Math.abs(n.x - x) < W - 20 && Math.abs(n.y - y) < H - 40)) return { x, y };
+// Eerste vrije plek (links naar rechts, boven naar beneden) waar een item van w x h past zonder een bestaand item te raken
+const SPOT_GAP = 20, SPOT_STEP = 20;
+export function freeSpot(w = 262, h = 140) {
+  const rects = [];
+  for (const n of items.values()) {
+    const el = els.get(n.id);
+    if (!el || el.hidden) continue; // verborgen (net verwijderd) telt niet mee
+    let iw = n.w, ih = n.h;
+    if (n.type !== 'image') { // een notitie groeit mee met zijn tekst: meet de echte hoogte (in bordcoördinaten)
+      const r = el.getBoundingClientRect();
+      iw = 262; ih = r.height / state.zoom || 140;
+    }
+    rects.push([n.x, n.y, n.x + iw, n.y + ih]);
   }
-  return { x: 20, y: 20 };
+  const free = (x, y) => !rects.some(([l, t, r, b]) => x < r + SPOT_GAP && x + w > l - SPOT_GAP && y < b + SPOT_GAP && y + h > t - SPOT_GAP);
+  const maxX = Math.max(SPOT_GAP, Math.floor(board.clientWidth / state.zoom) - w - SPOT_GAP);
+  const maxY = rects.reduce((m, r) => Math.max(m, r[3]), 0);
+  for (let y = SPOT_GAP; y <= maxY + SPOT_GAP; y += SPOT_STEP) {
+    for (let x = SPOT_GAP; x <= maxX; x += SPOT_STEP) if (free(x, y)) return { x, y };
+  }
+  return { x: SPOT_GAP, y: Math.ceil((maxY + SPOT_GAP) / SPOT_STEP) * SPOT_STEP };
 }
 
 form.addEventListener('submit', async (e) => {
