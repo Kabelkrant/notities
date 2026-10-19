@@ -11,7 +11,11 @@ $notes = $authed ? all_notes() : [];
 // Zoomniveau uit de cookie 'zoom' (door app geschreven); server zet het meteen, zodat de pagina niet eerst op 100% laadt.
 $zoom = isset($_COOKIE['zoom']) && is_numeric($_COOKIE['zoom']) ? max(0.25, min(3.0, (float)$_COOKIE['zoom'])) : 1.0;
 $snap = ($_COOKIE['snap'] ?? '') === '1';
+// Drempels voor 'afbeelding te groot' (vraag om te verkleinen), uit .env; ongeldige waarden vallen terug op de standaard
+$envInt = fn(string $k, int $default, int $min, int $max): int => max($min, min($max, (int)(Auth::env($k) ?: $default)));
 $boot = [
+    'imageMaxDim' => $envInt('IMAGE_MAX_DIMENSION', 2000, 100, 5000),
+    'imageMaxBytes' => $envInt('IMAGE_MAX_KB', 2048, 50, 15 * 1024) * 1024,
     'auth' => $authed,
     'snap' => $snap,
     'zoom' => $zoom,
@@ -130,6 +134,18 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
         <button type="button" id="updateBtn" class="primary about-btn" disabled>Updaten</button>
         <button type="button" id="aboutClose" class="about-btn">Sluiten</button>
       </div>
+    </form>
+  </dialog>
+
+  <dialog id="resizeDialog" aria-labelledby="resizeTitle">
+    <form method="dialog">
+      <h2 id="resizeTitle">Afbeelding te groot</h2>
+      <p id="resizeInfo"></p>
+      <p>Wil je hem verkleinen?</p>
+      <menu>
+        <button type="submit" value="no">Nee, annuleren</button>
+        <button type="submit" value="yes" class="primary" id="resizeYes">Ja, verkleinen</button>
+      </menu>
     </form>
   </dialog>
 

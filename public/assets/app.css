@@ -112,6 +112,7 @@ label input, label textarea { color: var(--text); background: var(--bg); border:
 .link-actions button[hidden] { display: none; }
 .fmt-sep { width: 1px; align-self: stretch; margin: .2rem .25rem; background: color-mix(in srgb, var(--text) 25%, transparent); }
 .field textarea { color: var(--text); background: var(--bg); border: 1px solid color-mix(in srgb, var(--text) 25%, transparent); border-radius: 8px; }
+#resizeDialog p { margin: 0; }
 .about h2 { margin: 0; font-size: 1.5rem; text-align: center; }
 .about-version { margin: 0; text-align: center; color: var(--muted); }
 .about-version strong { color: var(--text); font-weight: 600; }
