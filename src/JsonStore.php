@@ -1,9 +1,13 @@
 <?php
 declare(strict_types=1);
 
+/** De notitie is intussen gewijzigd t.o.v. de versie waarop de bewerking gebaseerd was. */
+final class ConflictException extends RuntimeException {}
+
 /**
  * Opslag van notities in één JSON-bestand: {"next_id": int, "notes": [...]}.
- * Alle toegang loopt via flock, zodat gelijktijdige requests elkaar niet overschrijven.
+ * Alle toegang loopt via flock op een apart lock-bestand, zodat gelijktijdige requests elkaar niet
+ * overschrijven. Schrijven gaat atomair (tijdelijk bestand + rename): een crash laat nooit een halve JSON achter.
  */
 final class JsonStore
 {
@@ -34,12 +38,18 @@ final class JsonStore
         }, write: true);
     }
 
-    /** @param array<string,mixed> $changes */
-    public function update(int $id, array $changes): ?array
+    /**
+     * @param array<string,mixed> $changes
+     * @param array<string,mixed>|null $expect velden die nog precies zo moeten zijn als de client dacht; anders ConflictException
+     */
+    public function update(int $id, array $changes, ?array $expect = null): ?array
     {
-        return $this->read(function (array &$d) use ($id, $changes) {
+        return $this->read(function (array &$d) use ($id, $changes, $expect) {
             foreach ($d['notes'] as &$n) {
                 if ($n['id'] === $id) {
+                    foreach ($expect ?? [] as $k => $v) {
+                        if (($n[$k] ?? null) !== $v) throw new ConflictException();
+                    }
                     $n = array_merge($n, $changes, ['updated' => date('Y-m-d H:i:s')]);
                     return $n;
                 }
@@ -63,24 +73,39 @@ final class JsonStore
 
     private function read(callable $fn, bool $write): mixed
     {
-        $fh = fopen($this->path, 'c+');
-        if (!$fh) throw new RuntimeException('Databestand niet te openen');
+        $lock = fopen($this->path . '.lock', 'c');
+        if (!$lock) throw new RuntimeException('Lockbestand niet te openen');
         try {
-            if (!flock($fh, $write ? LOCK_EX : LOCK_SH)) throw new RuntimeException('Lock mislukt');
-            $raw = stream_get_contents($fh);
-            $data = $raw === '' ? ['next_id' => 1, 'notes' => []] : json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+            if (!flock($lock, $write ? LOCK_EX : LOCK_SH)) throw new RuntimeException('Lock mislukt');
+            $raw = is_file($this->path) ? file_get_contents($this->path) : '';
+            if ($raw === false) throw new RuntimeException('Databestand niet te lezen');
+            $data = trim($raw) === '' ? ['next_id' => 1, 'notes' => []] : json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
             $result = $fn($data);
             if ($write) {
-                $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
-                rewind($fh);
-                ftruncate($fh, 0);
-                fwrite($fh, $json);
-                fflush($fh);
+                $this->writeAtomic(json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
             }
             return $result;
         } finally {
-            flock($fh, LOCK_UN);
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    private function writeAtomic(string $json): void
+    {
+        $tmp = $this->path . '.' . bin2hex(random_bytes(4)) . '.tmp';
+        $fh = fopen($tmp, 'wb');
+        if (!$fh) throw new RuntimeException('Tijdelijk bestand niet te maken');
+        try {
+            if (fwrite($fh, $json) !== strlen($json) || !fflush($fh)) throw new RuntimeException('Schrijven mislukt');
+            fsync($fh);
             fclose($fh);
+            @chmod($tmp, 0600);
+            if (!rename($tmp, $this->path)) throw new RuntimeException('Opslaan mislukt');
+        } catch (Throwable $e) {
+            if (is_resource($fh)) fclose($fh);
+            @unlink($tmp);
+            throw $e;
         }
     }
 }

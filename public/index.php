@@ -11,6 +11,12 @@ $boot = [
     'notes' => $notes,
 ];
 $v = fn(string $f): int => (int)@filemtime(__DIR__ . '/' . $f);
+// Import map: geeft elke JS-module een ?v=<wijzigingstijd>, zodat browsers na een update geen verouderde modules gebruiken.
+$imports = [];
+foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
+    $rel = 'assets/js/' . basename($f);
+    $imports['./' . $rel] = './' . $rel . '?v=' . $v($rel);
+}
 ?>
 <!doctype html>
 <html lang="nl">
@@ -24,7 +30,6 @@ $v = fn(string $f): int => (int)@filemtime(__DIR__ . '/' . $f);
   <title>Notities</title>
   <link rel="icon" type="image/png" href="sticky-note.png">
   <link rel="stylesheet" href="assets/app.css?v=<?= $v('assets/app.css') ?>">
-  <base target="_blank">
 </head>
 <body>
   <h1 class="sr-only">Kabelkrant Notities</h1>
@@ -43,7 +48,7 @@ $v = fn(string $f): int => (int)@filemtime(__DIR__ . '/' . $f);
   <main class="board" id="board" aria-label="Notitiebord"></main>
 
   <dialog id="noteDialog">
-    <form id="noteForm" method="dialog" target="_self">
+    <form id="noteForm" method="dialog">
       <h2 id="dialogTitle">Nieuwe notitie</h2>
       <input type="hidden" name="id">
       <label>Titel <input type="text" name="title" maxlength="255" required></label>
@@ -76,6 +81,7 @@ $v = fn(string $f): int => (int)@filemtime(__DIR__ . '/' . $f);
     <button type="button" id="toastAction">Ongedaan maken</button>
   </div>
 
+  <script type="importmap"><?= json_encode(['imports' => $imports], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
   <script id="boot" type="application/json"><?= json_encode($boot, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
   <script src="assets/app.js?v=<?= $v('assets/app.js') ?>" type="module"></script>
 </body>

@@ -136,7 +136,6 @@ try {
     };
     $coord = fn(string $k): int => clamp_int($in[$k] ?? 0, 0, 100000);
     $found = fn(?array $n): array => $n ?? respond(['error' => 'Notitie niet gevonden'], 404);
-    $isType = fn(string $type) => ($store->find($id)['type'] ?? 'note') === $type;
 
     switch ($action) {
         case 'create':
@@ -147,19 +146,30 @@ try {
 
         case 'update':
             [$t, $b, $c] = $fields();
-            if (!$isType('note')) respond(['error' => 'Alleen notities zijn te bewerken'], 400);
-            respond(['note' => note_to_array($found($store->update($id, ['title' => $t, 'body' => $b, 'color' => $c])))]);
+            if (($found($store->find($id))['type'] ?? 'note') !== 'note') respond(['error' => 'Alleen notities zijn te bewerken'], 400);
+            // Conflictcontrole: de client geeft de inhoud mee waarop zijn bewerking gebaseerd is (verplaatsen telt niet mee).
+            $expect = null;
+            if (empty($in['force']) && is_array($in['base'] ?? null)) {
+                $expect = [];
+                foreach (['title', 'body', 'color'] as $k) $expect[$k] = (string)($in['base'][$k] ?? '');
+            }
+            try {
+                $n = $store->update($id, ['title' => $t, 'body' => $b, 'color' => $c], $expect);
+            } catch (ConflictException) {
+                respond(['error' => 'Deze notitie is ondertussen door iemand anders gewijzigd. Klik nogmaals op Opslaan om die wijziging te overschrijven, of annuleer om eerst de nieuwe versie te zien.'], 409);
+            }
+            respond(['note' => note_to_array($found($n))]);
 
         case 'move':
-            $store->update($id, ['x' => $coord('x'), 'y' => $coord('y')]);
+            $found($store->update($id, ['x' => $coord('x'), 'y' => $coord('y')]));
             respond(['ok' => true]);
 
         case 'resize':
-            if (!$isType('image')) respond(['error' => 'Alleen afbeeldingen zijn te schalen'], 400);
-            $store->update($id, [
+            if (($found($store->find($id))['type'] ?? 'note') !== 'image') respond(['error' => 'Alleen afbeeldingen zijn te schalen'], 400);
+            $found($store->update($id, [
                 'w' => clamp_int($in['w'] ?? 0, MIN_IMAGE_SIZE, MAX_IMAGE_SIZE),
                 'h' => clamp_int($in['h'] ?? 0, MIN_IMAGE_SIZE, MAX_IMAGE_SIZE),
-            ]);
+            ]));
             respond(['ok' => true]);
 
         case 'delete':
