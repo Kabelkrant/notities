@@ -80,6 +80,7 @@ function showLinkError(msg) { linkError.textContent = msg; linkError.hidden = !m
 function closeLinkBox() { linkBox.hidden = true; linkTarget = null; showLinkError(''); }
 
 function openLinkBox() {
+  closeEmoji();
   const v = bodyField.value, s = bodyField.selectionStart, e = bodyField.selectionEnd;
   const existing = linkAt(v, s, e);
   const sel = v.slice(s, e);
@@ -131,8 +132,71 @@ bodyField.addEventListener('paste', (e) => {
   replaceRange(s, e2, md, s + md.length, s + md.length);
 });
 
+/* ---------- Emoji-kiezer: 5x5 raster met veelgebruikte emoji ---------- */
+const EMOJI = [
+  ['👍', 'duim omhoog'], ['✅', 'klaar'], ['❌', 'fout'], ['⚠️', 'waarschuwing'], ['🔥', 'vuur'],
+  ['💡', 'idee'], ['📌', 'pin'], ['📅', 'kalender'], ['⏰', 'wekker'], ['⏳', 'zandloper'],
+  ['🚀', 'raket'], ['🐛', 'bug'], ['🌐', 'wereldbol'], ['🔒', 'slot'], ['⭐', 'ster'],
+  ['📞', 'telefoon'], ['✉️', 'envelop'], ['🏠', 'huis'], ['💰', 'geld'], ['🎉', 'feest'],
+  ['❤️', 'hart'], ['😀', 'lachend gezicht'], ['🤔', 'nadenkend gezicht'], ['🙏', 'dank'], ['👀', 'ogen'],
+];
+const EMOJI_COLS = 5;
+const emojiPop = document.getElementById('emojiPop'), emojiBtn = document.getElementById('emojiBtn');
+let emojiRange = null;
+for (const [ch, name] of EMOJI) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.textContent = ch; b.title = name; b.setAttribute('aria-label', name);
+  emojiPop.appendChild(b);
+}
+
+function closeEmoji() {
+  emojiPop.hidden = true;
+  emojiBtn.setAttribute('aria-expanded', 'false');
+  emojiRange = null;
+}
+
+function openEmoji() {
+  closeLinkBox();
+  emojiRange = [bodyField.selectionStart, bodyField.selectionEnd];
+  emojiPop.hidden = false;
+  emojiBtn.setAttribute('aria-expanded', 'true');
+  const field = emojiPop.parentElement, bar = emojiBtn.parentElement;
+  emojiPop.style.top = bar.offsetTop + bar.offsetHeight + 4 + 'px';
+  emojiPop.style.left = Math.max(0, Math.min(emojiBtn.offsetLeft, field.clientWidth - emojiPop.offsetWidth)) + 'px';
+  emojiPop.querySelector('button').focus();
+}
+
+function toggleEmoji() { emojiPop.hidden ? openEmoji() : closeEmoji(); }
+
+emojiPop.addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b || !emojiRange) return;
+  const [s, e2] = emojiRange, ch = b.textContent;
+  closeEmoji();
+  replaceRange(s, e2, ch, s + ch.length, s + ch.length);
+});
+emojiPop.addEventListener('keydown', (e) => {
+  const btns = [...emojiPop.querySelectorAll('button')], i = btns.indexOf(document.activeElement);
+  const move = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: EMOJI_COLS, ArrowUp: -EMOJI_COLS }[e.key];
+  if (move !== undefined) {
+    e.preventDefault();
+    const n = i + move;
+    if (n >= 0 && n < btns.length) btns[n].focus();
+  } else if (e.key === 'Escape') {
+    e.preventDefault(); e.stopPropagation(); // sluit alleen de kiezer, niet de dialoog
+    closeEmoji(); bodyField.focus();
+  } else if (e.key === 'Tab') {
+    closeEmoji();
+  }
+});
+document.addEventListener('pointerdown', (e) => {
+  if (!emojiPop.hidden && !e.target.closest('#emojiPop, #emojiBtn')) closeEmoji();
+});
+dialog.addEventListener('close', closeEmoji);
+
 const FORMATS = {
   link: openLinkBox,
+  emoji: toggleEmoji,
   bold: () => toggleInline('**'),
   italic: () => toggleInline('*'),
   underline: () => toggleInline('++'),

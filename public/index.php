@@ -102,7 +102,9 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
           <button type="button" data-fmt="numbers" title="Genummerde lijst" aria-label="Genummerde lijst">1. ≡</button>
           <span class="fmt-sep" aria-hidden="true"></span>
           <button type="button" data-fmt="link" title="Link (Ctrl+K)" aria-label="Link">🔗</button>
+          <button type="button" data-fmt="emoji" id="emojiBtn" title="Emoji" aria-label="Emoji" aria-haspopup="true" aria-expanded="false">😀</button>
         </div>
+        <div class="emoji-pop" id="emojiPop" role="group" aria-label="Emoji" hidden></div>
         <div class="link-box" id="linkBox" hidden>
           <label>Tekst <input type="text" id="linkText" autocomplete="off" placeholder="Zichtbare tekst (leeg = het adres zelf)"></label>
           <label>Adres <input type="text" id="linkUrl" inputmode="url" autocomplete="off" placeholder="https://…"></label>
