@@ -1,4 +1,4 @@
-import { form } from './ui.js';
+import { form, dialog } from './ui.js';
 
 // Opmaak-toolbar (Markdown in de textarea)
 const bodyField = form.body;
@@ -46,7 +46,93 @@ function toggleList(kind) {
   replaceRange(start, end, out, start, start + out.length);
 }
 
+/* ---------- Links: [tekst](adres) ---------- */
+const linkBox = document.getElementById('linkBox'), linkText = document.getElementById('linkText');
+const linkUrl = document.getElementById('linkUrl'), linkError = document.getElementById('linkError');
+const linkRemove = document.getElementById('linkRemove');
+let linkTarget = null; // {start, end, existing} van de tekst die vervangen wordt
+const MD_LINK = /\[((?:\\.|[^\]\\])*)\]\(([^)\s]*)\)/g;
+const escLabel = (t) => t.replace(/[\[\]]/g, '\\$&');
+
+// Staat de cursor (of selectie) binnen een bestaande Markdown-link?
+function linkAt(v, s, e) {
+  for (const m of v.matchAll(MD_LINK)) {
+    const a = m.index, b = a + m[0].length;
+    if (s >= a && e <= b && !(s === e && (s === a || s === b))) {
+      return { start: a, end: b, text: m[1].replace(/\\([\[\]])/g, '$1'), url: m[2] };
+    }
+  }
+  return null;
+}
+
+// Alleen http(s) en mailto; ontbrekend https:// wordt aangevuld, haakjes en spaties worden veilig gemaakt
+function normalizeUrl(u) {
+  u = u.replace(/\s+/g, '%20');
+  if (!/^(https?:\/\/|mailto:)/i.test(u)) {
+    if (u.includes('://')) return null;
+    u = /^[^\s@\/%]+@[^\s@\/%]+\.[^\s@\/%]+$/.test(u) ? 'mailto:' + u : 'https://' + u;
+  }
+  return u.replace(/\(/g, '%28').replace(/\)/g, '%29');
+}
+
+const looksLikeUrl = (t) => /^(https?:\/\/|www\.)\S+$/i.test(t);
+function showLinkError(msg) { linkError.textContent = msg; linkError.hidden = !msg; }
+function closeLinkBox() { linkBox.hidden = true; linkTarget = null; showLinkError(''); }
+
+function openLinkBox() {
+  const v = bodyField.value, s = bodyField.selectionStart, e = bodyField.selectionEnd;
+  const existing = linkAt(v, s, e);
+  const sel = v.slice(s, e);
+  linkTarget = existing ? { start: existing.start, end: existing.end, existing: true } : { start: s, end: e, existing: false };
+  linkText.value = existing ? existing.text : looksLikeUrl(sel) ? '' : sel;
+  linkUrl.value = existing ? existing.url : looksLikeUrl(sel) ? sel : '';
+  linkRemove.hidden = !existing;
+  showLinkError('');
+  linkBox.hidden = false;
+  (linkText.value ? linkUrl : linkText).focus(); // tekst al bekend: naar het adres, anders eerst de tekst
+}
+
+function applyLink() {
+  const raw = linkUrl.value.trim();
+  if (!raw) return showLinkError('Vul een adres in');
+  const url = normalizeUrl(raw);
+  if (!url) return showLinkError('Gebruik een http(s)- of mailto-adres');
+  const label = linkText.value.trim();
+  const md = label ? `[${escLabel(label)}](${url})` : url.startsWith('mailto:') ? `[${escLabel(url.slice(7))}](${url})` : url;
+  const { start, end } = linkTarget;
+  closeLinkBox();
+  replaceRange(start, end, md, start + md.length, start + md.length);
+}
+
+function removeLink() {
+  const { start, end } = linkTarget;
+  const plain = linkText.value;
+  closeLinkBox();
+  replaceRange(start, end, plain, start, start + plain.length);
+}
+
+document.getElementById('linkApply').addEventListener('click', applyLink);
+document.getElementById('linkCancel').addEventListener('click', () => { closeLinkBox(); bodyField.focus(); });
+linkRemove.addEventListener('click', removeLink);
+linkBox.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); applyLink(); }
+  else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeLinkBox(); bodyField.focus(); } // sluit alleen het linkveld, niet de dialoog
+});
+bodyField.addEventListener('input', () => { if (!linkBox.hidden) closeLinkBox(); });
+dialog.addEventListener('close', closeLinkBox);
+
+// URL plakken over geselecteerde tekst maakt er een link van
+bodyField.addEventListener('paste', (e) => {
+  const s = bodyField.selectionStart, e2 = bodyField.selectionEnd;
+  const sel = bodyField.value.slice(s, e2), pasted = (e.clipboardData?.getData('text') || '').trim();
+  if (s === e2 || sel.includes('\n') || !/^https?:\/\/\S+$/i.test(pasted)) return;
+  e.preventDefault();
+  const md = `[${escLabel(sel)}](${normalizeUrl(pasted)})`;
+  replaceRange(s, e2, md, s + md.length, s + md.length);
+});
+
 const FORMATS = {
+  link: openLinkBox,
   bold: () => toggleInline('**'),
   italic: () => toggleInline('*'),
   underline: () => toggleInline('++'),
@@ -60,6 +146,6 @@ document.querySelector('.fmt-bar').addEventListener('click', (e) => {
 });
 bodyField.addEventListener('keydown', (e) => {
   if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return;
-  const fmt = { b: 'bold', i: 'italic', u: 'underline' }[e.key.toLowerCase()];
+  const fmt = { b: 'bold', i: 'italic', u: 'underline', k: 'link' }[e.key.toLowerCase()];
   if (fmt) { e.preventDefault(); FORMATS[fmt](); }
 });

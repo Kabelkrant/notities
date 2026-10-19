@@ -96,6 +96,18 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
           <span class="fmt-sep" aria-hidden="true"></span>
           <button type="button" data-fmt="bullets" title="Opsomming" aria-label="Opsomming">• ≡</button>
           <button type="button" data-fmt="numbers" title="Genummerde lijst" aria-label="Genummerde lijst">1. ≡</button>
+          <span class="fmt-sep" aria-hidden="true"></span>
+          <button type="button" data-fmt="link" title="Link (Ctrl+K)" aria-label="Link">🔗</button>
+        </div>
+        <div class="link-box" id="linkBox" hidden>
+          <label>Tekst <input type="text" id="linkText" autocomplete="off" placeholder="Zichtbare tekst (leeg = het adres zelf)"></label>
+          <label>Adres <input type="text" id="linkUrl" inputmode="url" autocomplete="off" placeholder="https://…"></label>
+          <p class="error" id="linkError" hidden></p>
+          <div class="link-actions">
+            <button type="button" id="linkRemove" hidden>Link verwijderen</button>
+            <button type="button" id="linkCancel">Annuleren</button>
+            <button type="button" id="linkApply" class="primary">Toepassen</button>
+          </div>
         </div>
         <textarea id="bodyField" name="body" maxlength="20000" required aria-label="Notitie"></textarea>
       </div>

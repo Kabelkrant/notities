@@ -104,6 +104,11 @@ label input, label textarea { color: var(--text); background: var(--bg); border:
 .fmt-bar { display: flex; align-items: center; gap: .25rem; }
 .fmt-bar button { min-width: 2.2rem; padding: .25rem .5rem; line-height: 1.2; }
 .fmt-bar button:hover { background: color-mix(in srgb, var(--accent) 15%, var(--surface)); }
+.link-box { display: flex; flex-direction: column; gap: .5rem; padding: .6rem; border: 1px solid color-mix(in srgb, var(--text) 25%, transparent); border-radius: 8px; background: color-mix(in srgb, var(--accent) 6%, var(--surface)); }
+.link-box[hidden] { display: none; }
+.link-actions { display: flex; justify-content: flex-end; gap: .5rem; }
+.link-actions #linkRemove { margin-right: auto; }
+.link-actions button[hidden] { display: none; }
 .fmt-sep { width: 1px; align-self: stretch; margin: .2rem .25rem; background: color-mix(in srgb, var(--text) 25%, transparent); }
 .field textarea { color: var(--text); background: var(--bg); border: 1px solid color-mix(in srgb, var(--text) 25%, transparent); border-radius: 8px; }
 .about h2 { margin: 0; font-size: 1.5rem; text-align: center; }

@@ -45,7 +45,12 @@ export function paint(el, n) {
   // n.html komt van Parsedown in safe mode (server-side gesaniteerd)
   const body = el.querySelector('.body-text');
   body.innerHTML = n.html;
-  for (const a of body.querySelectorAll('a')) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+  for (const a of body.querySelectorAll('a')) {
+    a.target = '_blank'; a.rel = 'noopener noreferrer';
+    const href = a.getAttribute('href') || '';
+    // eigen linktekst: toon het echte adres als tooltip (automatische links tonen het adres al)
+    if (a.textContent !== href && a.textContent !== href.replace(/^https?:\/\//i, '')) a.title = href;
+  }
 }
 
 export function upsert(n) {
