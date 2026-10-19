@@ -132,15 +132,15 @@ bodyField.addEventListener('paste', (e) => {
   replaceRange(s, e2, md, s + md.length, s + md.length);
 });
 
-/* ---------- Emoji-kiezer: 5x5 raster met veelgebruikte emoji ---------- */
+/* ---------- Emoji-kiezer: raster van 6 kolommen x 5 rijen met veelgebruikte emoji ---------- */
 const EMOJI = [
-  ['👍', 'duim omhoog'], ['✅', 'klaar'], ['❌', 'fout'], ['⚠️', 'waarschuwing'], ['🔥', 'vuur'],
-  ['💡', 'idee'], ['📌', 'pin'], ['📅', 'kalender'], ['⏰', 'wekker'], ['⏳', 'zandloper'],
-  ['🚀', 'raket'], ['🐛', 'bug'], ['🌐', 'wereldbol'], ['🔒', 'slot'], ['⭐', 'ster'],
-  ['📞', 'telefoon'], ['✉️', 'envelop'], ['🏠', 'huis'], ['💰', 'geld'], ['🎉', 'feest'],
-  ['❤️', 'hart'], ['😀', 'lachend gezicht'], ['🤔', 'nadenkend gezicht'], ['🙏', 'dank'], ['👀', 'ogen'],
+  ['👍', 'duim omhoog'], ['✅', 'klaar'], ['❌', 'fout'], ['⚠️', 'waarschuwing'], ['🔥', 'vuur'], ['⭐', 'ster'],
+  ['💡', 'idee'], ['📌', 'pin'], ['📅', 'kalender'], ['⏰', 'wekker'], ['⏳', 'zandloper'], ['🎯', 'doel'],
+  ['🚀', 'raket'], ['🐛', 'bug'], ['🌐', 'wereldbol'], ['🔒', 'slot'], ['🔧', 'moersleutel'], ['🎉', 'feest'],
+  ['📞', 'telefoon'], ['✉️', 'envelop'], ['🏠', 'huis'], ['💰', 'geld'], ['🙏', 'dank'], ['👀', 'ogen'],
+  ['❤️', 'hart'], ['😀', 'lachend gezicht'], ['😂', 'lachen om te huilen'], ['🤔', 'nadenkend gezicht'], ['🤢', 'misselijk gezicht'], ['🤯', 'hoofd explodeert'],
 ];
-const EMOJI_COLS = 5;
+const EMOJI_COLS = 6;
 const emojiPop = document.getElementById('emojiPop'), emojiBtn = document.getElementById('emojiBtn');
 let emojiRange = null;
 for (const [ch, name] of EMOJI) {
