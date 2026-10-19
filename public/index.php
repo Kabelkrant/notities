@@ -69,8 +69,8 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
       <div id="mainMenu" class="menu" role="menu" hidden>
         <button type="button" role="menuitem" id="resetZoom"><span class="ico" aria-hidden="true">🔎</span> Reset zoom</button>
         <button type="button" role="menuitemcheckbox" id="snapToggle" aria-checked="<?= $snap ? 'true' : 'false' ?>"><span class="ico" aria-hidden="true"><span class="check">✓</span></span>Snap to grid</button>
-        <button type="button" role="menuitem" id="aboutBtn"><span class="ico" aria-hidden="true">ℹ️</span> Over</button>
         <button type="button" role="menuitem" id="logoutBtn"><span class="ico" aria-hidden="true">🔒</span> Uitloggen</button>
+        <button type="button" role="menuitem" id="aboutBtn"><span class="ico" aria-hidden="true">ℹ️</span> Over</button>
       </div>
     </div>
     <input type="file" id="imageInput" accept="image/png,image/jpeg,image/gif,image/webp,image/avif" hidden>
@@ -115,10 +115,9 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
       <p id="aboutLatest" class="about-latest"></p>
       <p class="error" id="updateError" hidden></p>
       <div class="about-actions">
-        <button type="button" id="updateBtn" class="primary" hidden>Updaten</button>
-        <button type="button" id="aboutClose">Sluiten</button>
+        <button type="button" id="updateBtn" class="primary about-btn" disabled>Updaten</button>
+        <button type="button" id="aboutClose" class="about-btn">Sluiten</button>
       </div>
-      <a id="aboutRepo" class="about-repo" href="#" target="_blank" rel="noopener noreferrer">GitHub</a>
     </form>
   </dialog>
 

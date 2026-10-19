@@ -8,10 +8,14 @@ function showError(msg) { err.textContent = msg; err.hidden = !msg; }
 
 function render(info) {
   $('aboutTitle').textContent = info.name;
-  $('aboutRepo').href = info.repo;
   const v = info.version, c = info.check, l = c.latest;
   $('aboutVersion').textContent = v.short ? v.short + (v.date ? ` (${fmtDate(v.date)})` : '') : 'onbekend';
-  $('aboutLatest').textContent = l ? `Nieuwste op GitHub: ${l.short} – ${l.message}${l.date ? ` (${fmtDate(l.date)})` : ''}` : '';
+  const latest = $('aboutLatest');
+  latest.replaceChildren();
+  if (l) {
+    const a = Object.assign(document.createElement('a'), { href: info.repo, target: '_blank', rel: 'noopener noreferrer', textContent: 'GitHub' });
+    latest.append('Nieuwste op ', a, `: ${l.short} – ${l.message}${l.date ? ` (${fmtDate(l.date)})` : ''}`);
+  }
   const updatable = c.state === 'update' || (c.state === 'unknown' && !v.short);
   statusEl.classList.toggle('update', updatable);
   statusEl.textContent = {
@@ -21,19 +25,19 @@ function render(info) {
     newer: 'Deze installatie loopt voor op GitHub.',
     error: 'Controleren mislukt: ' + (c.message || 'onbekende fout'),
   }[c.state] || '';
-  updateBtn.hidden = !updatable;
-  updateBtn.disabled = !!info.blocked;
+  updateBtn.disabled = !updatable || !!info.blocked;
+  updateBtn.title = updatable && info.blocked ? info.blocked : '';
   if (updatable && info.blocked) showError(info.blocked);
 }
 
 export async function openAbout() {
   showError('');
-  updateBtn.hidden = true;
-  updateBtn.disabled = false;
+  updateBtn.disabled = true; // pas actief als de controle een update meldt
+  updateBtn.title = '';
   statusEl.textContent = 'Controleren op updates…';
   statusEl.classList.remove('update');
   $('aboutVersion').textContent = '…';
-  $('aboutLatest').textContent = '';
+  $('aboutLatest').replaceChildren();
   dlg.showModal();
   try {
     const res = await fetch('api.php?about=1', { cache: 'no-store' });
