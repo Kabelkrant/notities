@@ -64,7 +64,7 @@ export function countdownMarkup(n) {
   // Indeling per variant (met/zonder streefdatum onderin, met/zonder omklapkaartjes); getallen en eenheden staan dicht op elkaar
   const withDate = n.showDate !== false;
   const L = withDate
-    ? (k.tiles ? { label: 34, nog: 56, tileY: 74, tileH: 56, num: 118, unit: 146, date: 176 } : { label: 34, nog: 58, num: 124, unit: 143, date: 174 })
+    ? (k.tiles ? { label: 34, nog: 56, tileY: 74, tileH: 56, num: 118, unit: 146, date: 178 } : { label: 34, nog: 58, num: 124, unit: 143, date: 176 })
     : (k.tiles ? { label: 46, nog: 76, tileY: 87, tileH: 64, num: 137, unit: 166 } : { label: 50, nog: 80, num: 142, unit: 161 });
   L.nog -= 3; // 'nog' iets dichter onder het label
   for (const key of ['tileY', 'num', 'unit']) if (L[key] !== undefined) L[key] -= 4;
@@ -80,9 +80,9 @@ export function countdownMarkup(n) {
   const tiles = k.tiles ? [24, 112].map((x) => `<rect x="${x}" y="${L.tileY}" width="64" height="${L.tileH}" rx="9" fill="#2f3036" stroke="#0d0d0f" stroke-width="1.5"/><rect x="${x}" y="${L.tileY + L.tileH / 2 - 0.8}" width="64" height="1.6" fill="#0d0d0f"/>`).join('') : '';
   const FS = r2((k.tiles ? 50 : 58) * size * (k.numScale || 1));
   const num = (cls, x) => `<text class="${cls}" x="${x}" y="${L.num}" text-anchor="middle" font-family="${k.font}" font-size="${FS}" data-fs="${FS}" font-weight="${k.weight}" fill="${k.num}"></text>`;
-  const unit = (cls, x) => `<text class="${cls}" x="${x}" y="${L.unit}" text-anchor="middle" font-family="${UI}" font-size="15" font-weight="600" fill="${k.unit}"></text>`;
+  const unit = (cls, x) => `<text class="${cls}" x="${x}" y="${L.unit}" text-anchor="middle" font-family="${UI}" font-size="16" font-weight="600" fill="${k.unit}"></text>`;
   const dt = n.showDate !== false ? dateText(n.target) : '';
-  const date = dt ? `<text x="100" y="${L.date}" text-anchor="middle" font-family="${UI}" font-size="15" font-weight="600" fill="${k.nog}"${dt.length * 8.3 > 172 ? ' textLength="172" lengthAdjust="spacingAndGlyphs"' : ''}>${esc(dt)}</text>` : '';
+  const date = dt ? `<text x="100" y="${L.date}" text-anchor="middle" font-family="${UI}" font-size="16" font-weight="600" fill="${k.nog}"${dt.length * 8.8 > 172 ? ' textLength="172" lengthAdjust="spacingAndGlyphs"' : ''}>${esc(dt)}</text>` : '';
   return `<svg viewBox="0 0 200 200" aria-hidden="true">${background(n.style, id)}${label}
     <g class="cd-live">
       <text x="100" y="${L.nog}" text-anchor="middle" font-family="${UI}" font-size="14" font-weight="600" letter-spacing="1.5" fill="${k.nog}">nog</text>
