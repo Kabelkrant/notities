@@ -1,10 +1,10 @@
 import { items, els } from './state.js';
-import { $, board, reportError } from './ui.js';
+import { $ } from './ui.js';
 import { api } from './api.js';
 import { upsert } from './render.js';
 import { poll } from './sync.js';
-import { freeSpot } from './dialog.js';
-import { COUNTDOWN_STYLES, COUNTDOWN_DEFAULT_SIZE, COUNTDOWN_MAX_LABEL, countdownMarkup, updateCountdown, secondsLeft } from './countdownshape.js';
+import { defineType } from './types.js';
+import { COUNTDOWN_STYLES, COUNTDOWN_DEFAULT_SIZE, COUNTDOWN_MIN_SIZE, COUNTDOWN_MAX_SIZE, COUNTDOWN_MAX_LABEL, countdownMarkup, updateCountdown, secondsLeft } from './countdownshape.js';
 
 /* ---------- Ticker: alle afteltimers bijwerken (updateCountdown slaat ongewijzigde stand over) ---------- */
 function tickAll() {
@@ -16,22 +16,6 @@ function tickAll() {
 }
 setInterval(tickAll, 250);
 document.addEventListener('visibilitychange', tickAll);
-
-/* ---------- Nieuwe afteltimer ---------- */
-export async function createCountdown() {
-  try {
-    const { x, y } = freeSpot(COUNTDOWN_DEFAULT_SIZE, COUNTDOWN_DEFAULT_SIZE, 20);
-    const { note } = await api({ action: 'create_countdown', x, y, w: COUNTDOWN_DEFAULT_SIZE });
-    upsert(note);
-    const el = els.get(note.id);
-    board.appendChild(el);
-    el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-    el.focus({ preventScroll: true });
-    poll();
-  } catch (err) {
-    reportError(err);
-  }
-}
 
 /* ---------- Dialoog: ontwerp, label, datum en tijd ---------- */
 const dlg = $('countdownDialog'), form = $('countdownForm'), preview = $('countdownPreview'), styleBox = $('countdownStyles'), errBox = $('countdownError');
@@ -92,11 +76,17 @@ form.addEventListener('submit', async (e) => {
   if (!target) { errBox.textContent = 'Vul een geldige datum en tijd in'; errBox.hidden = false; return; }
   if (target !== current.target && target <= Date.now() / 1000) { errBox.textContent = 'Kies een moment in de toekomst'; errBox.hidden = false; return; }
   try {
-    const { note } = await api({ action: 'countdown_update', id: current.id, style: choice.style, label: form.label.value.trim(), target, showDate: form.showDate.checked });
+    const { note } = await api({ action: 'item_update', id: current.id, style: choice.style, label: form.label.value.trim(), target, showDate: form.showDate.checked });
     upsert(note);
     dlg.close();
     poll();
   } catch (err) {
     errBox.textContent = err.message; errBox.hidden = false;
   }
+});
+
+defineType('countdown', {
+  label: 'Countdown', edit: openCountdownDialog, dbl: true,
+  create: () => ({ w: COUNTDOWN_DEFAULT_SIZE, top: 20 }),
+  resize: { mode: 'square', min: COUNTDOWN_MIN_SIZE, max: COUNTDOWN_MAX_SIZE, fields: ['w'] },
 });

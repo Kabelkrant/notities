@@ -82,6 +82,7 @@ final class JsonStore
             $data = trim($raw) === '' ? ['next_id' => 1, 'notes' => []] : json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
             $result = $fn($data);
             if ($write) {
+                Backup::maybe(dirname($this->path) . '/backups', $raw); // de stand van vóór deze wijziging, hooguit eens per interval
                 $this->writeAtomic(json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
             }
             return $result;

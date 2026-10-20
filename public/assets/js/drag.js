@@ -1,25 +1,24 @@
-import { MIN_SIZE, MAX_SIZE, items, state } from './state.js';
+import { items, state } from './state.js';
 import { board, reportError } from './ui.js';
 import { api } from './api.js';
 import { poll } from './sync.js';
 import { snapTo, showGrid } from './snap.js';
 import { paint } from './render.js';
-import { ARROW_MIN_W, ARROW_MIN_H, ARROW_MAX_H } from './arrowshape.js';
-import { CLOCK_MIN_SIZE, CLOCK_MAX_SIZE } from './clockshape.js';
-import { COUNTDOWN_MIN_SIZE, COUNTDOWN_MAX_SIZE } from './countdownshape.js';
-import { WORDART_MIN_W, WORDART_MAX_W, WORDART_MIN_H, WORDART_MAX_H } from './wordartshape.js';
+import { TYPES } from './types.js';
 
-// Slepen, schalen en roteren (Pointer Events)
+// Slepen, schalen en roteren (Pointer Events); vergrendelde items doen niet mee
 let drag = null, resize = null, rotate = null;
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 board.addEventListener('pointerdown', (e) => {
   const item = e.target.closest('.item');
   if (!item || e.button > 0) return;
+  const n = items.get(Number(item.dataset.id));
+  if (n.locked) return;
 
   const rot = e.target.closest('.rotate-handle');
   if (rot) {
-    const n = items.get(Number(item.dataset.id)), r = item.getBoundingClientRect();
+    const r = item.getBoundingClientRect();
     // de omhullende van een geroteerd element heeft hetzelfde middelpunt als het element zelf
     rotate = { item, n, cx: r.left + r.width / 2, cy: r.top + r.height / 2, id: e.pointerId };
     state.busy = true;
@@ -31,7 +30,6 @@ board.addEventListener('pointerdown', (e) => {
 
   const handle = e.target.closest('.resize-handle');
   if (handle) {
-    const n = items.get(Number(item.dataset.id));
     resize = { item, n, sx: e.clientX, sy: e.clientY, ow: n.w, oh: n.h, ox: n.x, oy: n.y, rot: n.rot || 0, id: e.pointerId };
     state.busy = true;
     item.focus({ preventScroll: true });
@@ -43,28 +41,24 @@ board.addEventListener('pointerdown', (e) => {
   if (e.target.closest('button, a')) return;
   // notities sleep je alleen via de kop; de tekst blijft selecteerbaar
   if (item.classList.contains('note') && !e.target.closest('.note-head')) return;
-  const n = items.get(Number(item.dataset.id));
   drag = { item, n, sx: e.clientX, sy: e.clientY, ox: n.x, oy: n.y, moved: false, id: e.pointerId };
   item.setPointerCapture(e.pointerId);
 });
 
-// Schalen van een pijl in zijn eigen (geroteerde) assen; de linkerbovenhoek blijft op het scherm op dezelfde plek staan
-function resizeArrow(e) {
-  const { n, item } = resize, z = state.zoom, t = resize.rot * Math.PI / 180, cos = Math.cos(t), sin = Math.sin(t);
+// Schalen in de eigen (geroteerde) assen van het item; de linkerbovenhoek blijft op het scherm op dezelfde plek staan
+function resizeBox(e) {
+  const { n, item } = resize, r = TYPES[n.type].resize, z = state.zoom, t = resize.rot * Math.PI / 180, cos = Math.cos(t), sin = Math.sin(t);
   const dx = (e.clientX - resize.sx) / z, dy = (e.clientY - resize.sy) / z;
   const lx = dx * cos + dy * sin, ly = -dx * sin + dy * cos; // aanwijzerbeweging in de assen van het item
   let nw, nh;
-  if (n.type === 'wordart' && e.shiftKey) { // met Shift blijft de verhouding gelijk: de hoek wordt op de diagonaal geprojecteerd
+  if (r.keepRatio && e.shiftKey) { // met Shift blijft de verhouding gelijk: de hoek wordt op de diagonaal geprojecteerd
     const ow = resize.ow, oh = resize.oh;
     const s = ((ow + lx) * ow + (oh + ly) * oh) / (ow * ow + oh * oh);
-    nw = clamp(Math.round(ow * s), WORDART_MIN_W, WORDART_MAX_W);
-    nh = clamp(Math.round(nw * oh / ow), WORDART_MIN_H, WORDART_MAX_H);
-  } else if (n.type === 'wordart') { // standaard vrij: breedte en hoogte los van elkaar
-    nw = clamp(Math.round(resize.ow + lx), WORDART_MIN_W, WORDART_MAX_W);
-    nh = clamp(Math.round(resize.oh + ly), WORDART_MIN_H, WORDART_MAX_H);
-  } else {
-    nw = clamp(Math.round(resize.ow + lx), ARROW_MIN_W, MAX_SIZE);
-    nh = clamp(Math.round(resize.oh + ly), ARROW_MIN_H, ARROW_MAX_H);
+    nw = clamp(Math.round(ow * s), r.min, r.max);
+    nh = clamp(Math.round(nw * oh / ow), r.minH, r.maxH);
+  } else { // standaard vrij: breedte en hoogte los van elkaar
+    nw = clamp(Math.round(resize.ow + lx), r.min, r.max);
+    nh = clamp(Math.round(resize.oh + ly), r.minH, r.maxH);
   }
   const rotv = (a, b) => [a * cos - b * sin, a * sin + b * cos];
   const [pdx, pdy] = rotv(-resize.ow / 2, -resize.oh / 2);
@@ -85,16 +79,15 @@ board.addEventListener('pointermove', (e) => {
     return;
   }
   if (resize && e.pointerId === resize.id) {
-    const { n, item } = resize;
-    if (n.type === 'arrow' || n.type === 'wordart') return resizeArrow(e);
-    if (n.type === 'clock' || n.type === 'countdown') {
+    const { n, item } = resize, r = TYPES[n.type].resize;
+    if (r.mode === 'box') return resizeBox(e);
+    if (r.mode === 'square') {
       const d = ((e.clientX - resize.sx) + (e.clientY - resize.sy)) / 2 / state.zoom; // vierkant: gemiddelde van de x- en y-beweging
-      const [lo, hi] = n.type === 'clock' ? [CLOCK_MIN_SIZE, CLOCK_MAX_SIZE] : [COUNTDOWN_MIN_SIZE, COUNTDOWN_MAX_SIZE];
-      n.w = n.h = clamp(Math.round(resize.ow + d), lo, hi);
+      n.w = n.h = clamp(Math.round(resize.ow + d), r.min, r.max);
       return paint(item, n);
     }
-    n.w = Math.min(MAX_SIZE, Math.max(MIN_SIZE, Math.round(resize.ow + (e.clientX - resize.sx) / state.zoom)));
-    n.h = Math.min(MAX_SIZE, Math.max(MIN_SIZE, Math.round(resize.oh + (e.clientY - resize.sy) / state.zoom)));
+    n.w = clamp(Math.round(resize.ow + (e.clientX - resize.sx) / state.zoom), r.min, r.max);
+    n.h = clamp(Math.round(resize.oh + (e.clientY - resize.sy) / state.zoom), r.min, r.max);
     item.style.width = n.w + 'px';
     item.style.height = n.h + 'px';
     return;
@@ -121,22 +114,13 @@ function endPointer(e) {
   if (rotate && e.pointerId === rotate.id) {
     const n = rotate.n;
     rotate = null; state.busy = false;
-    saveArrow(n, { rot: n.rot });
+    saveItem(n, { rot: n.rot });
     return;
   }
   if (resize && e.pointerId === resize.id) {
     const n = resize.n;
     resize = null; state.busy = false;
-    const req = n.type === 'arrow'
-      ? api({ action: 'arrow_update', id: n.id, x: n.x, y: n.y, w: n.w, h: n.h })
-      : n.type === 'wordart'
-        ? api({ action: 'wordart_update', id: n.id, x: n.x, y: n.y, w: n.w, h: n.h })
-        : n.type === 'clock'
-        ? api({ action: 'clock_update', id: n.id, w: n.w })
-        : n.type === 'countdown'
-        ? api({ action: 'countdown_update', id: n.id, w: n.w })
-        : api({ action: 'resize', id: n.id, w: n.w, h: n.h });
-    req.then(poll).catch((err) => reportError(new Error('Formaat opslaan mislukt: ' + err.message)));
+    saveItem(n, Object.fromEntries(TYPES[n.type].resize.fields.map((k) => [k, n[k]])), 'Formaat opslaan mislukt');
     return;
   }
   if (!drag || e.pointerId !== drag.id) return;
@@ -158,12 +142,12 @@ export async function saveMove(n) {
   }
 }
 
-// Wijzigingen aan een pijl (rotatie, ...) opslaan
-export async function saveArrow(n, fields) {
+// Wijzigingen aan een item (rotatie, formaat, vergrendeling, ...) opslaan
+export async function saveItem(n, fields, failure = 'Opslaan mislukt') {
   try {
-    await api({ action: n.type === 'wordart' ? 'wordart_update' : 'arrow_update', id: n.id, ...fields });
+    await api({ action: 'item_update', id: n.id, ...fields });
     poll();
   } catch (err) {
-    reportError(new Error('Pijl opslaan mislukt: ' + err.message));
+    reportError(new Error(failure + ': ' + err.message));
   }
 }

@@ -3,6 +3,7 @@ import { $, board, dialog, form } from './ui.js';
 import { api } from './api.js';
 import { upsert } from './render.js';
 import { poll } from './sync.js';
+import { defineType } from './types.js';
 import './format.js';
 
 const swatches = $('swatches');
@@ -85,3 +86,5 @@ form.addEventListener('submit', async (e) => {
     const box = $('formError'); box.textContent = err.message; box.hidden = false;
   }
 });
+
+defineType('note', { label: (n) => `"${n.title}"`, edit: openDialog, dbl: '.note-head' });

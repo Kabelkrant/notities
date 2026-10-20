@@ -86,6 +86,102 @@ function handle_upload(): never {
     respond(['note' => note_to_array($note)], 201);
 }
 
+/** Per itemtype het feature-vlaggetje (.env: ALLOW_<NAAM>) en de naam in meldingen; alleen soorten die via create_item worden aangemaakt. */
+const ITEM_FEATURES = [
+    'arrow' => ['ARROW', 'pijlen'], 'clock' => ['CLOCK', 'klokken'], 'wordart' => ['WORDART', 'WordArt'], 'countdown' => ['COUNTDOWN', 'countdowns'],
+];
+/** Velden die bij het verplaatsen of schalen horen; die zijn bij een vergrendeld item niet te wijzigen. */
+const GEOMETRY_FIELDS = ['x', 'y', 'w', 'h', 'rot'];
+
+/** Beginwaarden (zonder x/y) van een nieuw item van dit type; w en h mogen door de client worden meegegeven. */
+function item_defaults(string $type, array $in): array {
+    return match ($type) {
+        'arrow' => [
+            'w' => clamp_int($in['w'] ?? ARROW_DEFAULT_W, MIN_ARROW_LENGTH, MAX_IMAGE_SIZE),
+            'h' => clamp_int($in['h'] ?? ARROW_DEFAULT_H, MIN_ARROW_THICKNESS, MAX_ARROW_THICKNESS),
+            'rot' => 0, 'style' => 'solid', 'color' => ARROW_DEFAULT_COLOR,
+        ],
+        'clock' => [
+            'w' => clamp_int($in['w'] ?? CLOCK_DEFAULT_SIZE, MIN_CLOCK_SIZE, MAX_CLOCK_SIZE),
+            'style' => 'classic', 'tz' => '', 'label' => '', 'seconds' => true,
+        ],
+        'wordart' => [
+            'w' => clamp_int($in['w'] ?? WORDART_DEFAULT_W, MIN_WORDART_WIDTH, MAX_WORDART_WIDTH),
+            'h' => clamp_int($in['h'] ?? (int)round(WORDART_DEFAULT_W * 0.3), MIN_WORDART_HEIGHT, MAX_WORDART_HEIGHT),
+            'rot' => 0, 'text' => WORDART_DEFAULT_TEXT, 'style' => 'rainbow', 'shape' => 'straight',
+        ],
+        'countdown' => [
+            'w' => clamp_int($in['w'] ?? COUNTDOWN_DEFAULT_SIZE, MIN_COUNTDOWN_SIZE, MAX_COUNTDOWN_SIZE),
+            'style' => 'classic', 'label' => '', 'showDate' => true,
+            'target' => (intdiv(time(), 3600) + 25) * 3600, // standaard: morgen, op een heel uur
+        ],
+    };
+}
+
+/** Velden die item_update bij dit type mag aanpassen: veld => [soort, parameters...]. Alle typen kunnen verplaatst en vergrendeld worden. */
+function item_schema(string $type): array {
+    $int = fn(int $min, int $max) => ['int', $min, $max];
+    $text = fn(int $max) => ['text', $max];
+    return ['x' => $int(0, 100000), 'y' => $int(0, 100000), 'locked' => ['bool']] + match ($type) {
+        'image' => ['w' => $int(MIN_IMAGE_SIZE, MAX_IMAGE_SIZE), 'h' => $int(MIN_IMAGE_SIZE, MAX_IMAGE_SIZE)],
+        'arrow' => [
+            'w' => $int(MIN_ARROW_LENGTH, MAX_IMAGE_SIZE), 'h' => $int(MIN_ARROW_THICKNESS, MAX_ARROW_THICKNESS), 'rot' => ['rot'],
+            'style' => ['enum', ARROW_STYLES, 'Onbekend pijlontwerp'], 'color' => ['color'],
+        ],
+        'clock' => [
+            'w' => $int(MIN_CLOCK_SIZE, MAX_CLOCK_SIZE), 'style' => ['enum', CLOCK_STYLES, 'Onbekende klokstijl'],
+            'tz' => ['tz'], 'label' => $text(MAX_CLOCK_LABEL), 'seconds' => ['bool'],
+        ],
+        'wordart' => [
+            'w' => $int(MIN_WORDART_WIDTH, MAX_WORDART_WIDTH), 'h' => $int(MIN_WORDART_HEIGHT, MAX_WORDART_HEIGHT), 'rot' => ['rot'],
+            'text' => ['text', MAX_WORDART_TEXT, true], 'style' => ['enum', WORDART_STYLES, 'Onbekende WordArt-stijl'], 'shape' => ['enum', WORDART_SHAPES, 'Onbekende WordArt-vorm'],
+        ],
+        'countdown' => [
+            'w' => $int(MIN_COUNTDOWN_SIZE, MAX_COUNTDOWN_SIZE), 'style' => ['enum', COUNTDOWN_STYLES, 'Onbekend ontwerp'],
+            'label' => $text(MAX_COUNTDOWN_LABEL), 'target' => ['target'], 'showDate' => ['bool'],
+        ],
+        default => [], // notities: titel, tekst en kleur gaan via 'update'
+    };
+}
+
+/** Controleert en normaliseert de velden uit $in volgens het schema; geeft de wijzigingen terug of antwoordt met een fout. */
+function item_changes(array $cur, array $in): array {
+    $ch = [];
+    foreach (item_schema((string)($cur['type'] ?? 'note')) as $k => $spec) {
+        if (!isset($in[$k])) continue;
+        $v = $in[$k];
+        $ch[$k] = match ($spec[0]) {
+            'int' => clamp_int($v, $spec[1], $spec[2]),
+            'bool' => (bool)$v,
+            'rot' => (((int)round((float)$v)) % 360 + 360) % 360,
+            'color' => valid_hex_color($v) ? $v : respond(['error' => 'Ongeldige kleur'], 422),
+            'enum' => in_array($v, $spec[1], true) ? $v : respond(['error' => $spec[2]], 422),
+            'tz' => (function () use ($v) {
+                // IANA-naam (bijv. Europe/Amsterdam) of leeg = lokale tijd van de browser; de browser controleert de naam zelf
+                $tz = trim((string)$v);
+                if ($tz !== '' && (strlen($tz) > 64 || !preg_match('~^[A-Za-z0-9_+\-]+(/[A-Za-z0-9_+\-]+){0,2}$~', $tz))) respond(['error' => 'Ongeldige tijdzone'], 422);
+                return $tz;
+            })(),
+            'text' => (function () use ($v, $spec) {
+                $t = mb_substr(trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', (string)$v)), 0, $spec[1]);
+                if (($spec[2] ?? false) && $t === '') respond(['error' => 'Vul een tekst in'], 422);
+                return $t;
+            })(),
+            'target' => (function () use ($v) {
+                $t = (int)$v;
+                if ($t < 1 || $t > time() + MAX_COUNTDOWN_AHEAD) respond(['error' => 'Ongeldige datum'], 422);
+                return $t;
+            })(),
+        };
+    }
+    // een vergrendeld item laat zich niet verplaatsen of schalen (ontgrendelen kan in hetzelfde verzoek)
+    $locked = array_key_exists('locked', $ch) ? $ch['locked'] : !empty($cur['locked']);
+    if ($locked && array_intersect(GEOMETRY_FIELDS, array_keys($ch))) {
+        respond(['error' => 'Dit item is vergrendeld'], 409);
+    }
+    return $ch;
+}
+
 try {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         if (!Auth::check()) respond(['error' => 'Niet ingelogd'], 401);
@@ -170,127 +266,17 @@ try {
             $n = $store->create(['type' => 'note', 'title' => $t, 'body' => $b, 'color' => $c, 'x' => $coord('x'), 'y' => $coord('y')]);
             respond(['note' => note_to_array($n)], 201);
 
-        case 'create_arrow':
-            require_feature('ARROW', 'pijlen');
+        case 'create_item':
+            $type = (string)($in['type'] ?? '');
+            [$feature, $what] = ITEM_FEATURES[$type] ?? respond(['error' => 'Onbekend itemtype'], 400);
+            require_feature($feature, $what);
             check_capacity(false);
-            $n = $store->create([
-                'type' => 'arrow', 'x' => $coord('x'), 'y' => $coord('y'),
-                'w' => clamp_int($in['w'] ?? ARROW_DEFAULT_W, MIN_ARROW_LENGTH, MAX_IMAGE_SIZE),
-                'h' => clamp_int($in['h'] ?? ARROW_DEFAULT_H, MIN_ARROW_THICKNESS, MAX_ARROW_THICKNESS),
-                'rot' => 0, 'style' => 'solid', 'color' => ARROW_DEFAULT_COLOR,
-            ]);
+            $n = $store->create(['type' => $type, 'x' => $coord('x'), 'y' => $coord('y')] + item_defaults($type, $in));
             respond(['note' => note_to_array($n)], 201);
 
-        case 'arrow_update':
-            if (($found($store->find($id))['type'] ?? '') !== 'arrow') respond(['error' => 'Alleen pijlen zijn hiermee aan te passen'], 400);
-            $ch = [];
-            foreach (['x', 'y'] as $k) if (isset($in[$k])) $ch[$k] = clamp_int($in[$k], 0, 100000);
-            if (isset($in['w'])) $ch['w'] = clamp_int($in['w'], MIN_ARROW_LENGTH, MAX_IMAGE_SIZE);
-            if (isset($in['h'])) $ch['h'] = clamp_int($in['h'], MIN_ARROW_THICKNESS, MAX_ARROW_THICKNESS);
-            if (isset($in['rot'])) $ch['rot'] = (((int)round((float)$in['rot'])) % 360 + 360) % 360;
-            if (isset($in['style'])) {
-                if (!in_array($in['style'], ARROW_STYLES, true)) respond(['error' => 'Onbekend pijlontwerp'], 422);
-                $ch['style'] = $in['style'];
-            }
-            if (isset($in['color'])) {
-                if (!valid_hex_color($in['color'])) respond(['error' => 'Ongeldige kleur'], 422);
-                $ch['color'] = $in['color'];
-            }
-            respond(['note' => note_to_array($found($store->update($id, $ch)))]);
-
-        case 'create_clock':
-            require_feature('CLOCK', 'klokken');
-            check_capacity(false);
-            $n = $store->create([
-                'type' => 'clock', 'x' => $coord('x'), 'y' => $coord('y'),
-                'w' => clamp_int($in['w'] ?? CLOCK_DEFAULT_SIZE, MIN_CLOCK_SIZE, MAX_CLOCK_SIZE),
-                'style' => 'classic', 'tz' => '', 'label' => '', 'seconds' => true,
-            ]);
-            respond(['note' => note_to_array($n)], 201);
-
-        case 'clock_update':
-            if (($found($store->find($id))['type'] ?? '') !== 'clock') respond(['error' => 'Alleen klokken zijn hiermee aan te passen'], 400);
-            $ch = [];
-            foreach (['x', 'y'] as $k) if (isset($in[$k])) $ch[$k] = clamp_int($in[$k], 0, 100000);
-            if (isset($in['w'])) $ch['w'] = clamp_int($in['w'], MIN_CLOCK_SIZE, MAX_CLOCK_SIZE);
-            if (isset($in['style'])) {
-                if (!in_array($in['style'], CLOCK_STYLES, true)) respond(['error' => 'Onbekende klokstijl'], 422);
-                $ch['style'] = $in['style'];
-            }
-            if (isset($in['tz'])) {
-                // IANA-naam (bijv. Europe/Amsterdam) of leeg = lokale tijd van de browser; de browser controleert de naam zelf
-                $tz = trim((string)$in['tz']);
-                if ($tz !== '' && (strlen($tz) > 64 || !preg_match('~^[A-Za-z0-9_+\-]+(/[A-Za-z0-9_+\-]+){0,2}$~', $tz))) respond(['error' => 'Ongeldige tijdzone'], 422);
-                $ch['tz'] = $tz;
-            }
-            if (isset($in['label'])) {
-                $ch['label'] = mb_substr(trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', (string)$in['label'])), 0, MAX_CLOCK_LABEL);
-            }
-            if (isset($in['seconds'])) $ch['seconds'] = (bool)$in['seconds'];
-            respond(['note' => note_to_array($found($store->update($id, $ch)))]);
-
-        case 'create_countdown':
-            require_feature('COUNTDOWN', 'countdowns');
-            check_capacity(false);
-            $n = $store->create([
-                'type' => 'countdown', 'x' => $coord('x'), 'y' => $coord('y'),
-                'w' => clamp_int($in['w'] ?? COUNTDOWN_DEFAULT_SIZE, MIN_COUNTDOWN_SIZE, MAX_COUNTDOWN_SIZE),
-                'style' => 'classic', 'label' => '', 'showDate' => true, 'target' => (intdiv(time(), 3600) + 25) * 3600, // standaard: morgen, op een heel uur
-            ]);
-            respond(['note' => note_to_array($n)], 201);
-
-        case 'countdown_update':
-            if (($found($store->find($id))['type'] ?? '') !== 'countdown') respond(['error' => 'Alleen countdowns zijn hiermee aan te passen'], 400);
-            $ch = [];
-            foreach (['x', 'y'] as $k) if (isset($in[$k])) $ch[$k] = clamp_int($in[$k], 0, 100000);
-            if (isset($in['w'])) $ch['w'] = clamp_int($in['w'], MIN_COUNTDOWN_SIZE, MAX_COUNTDOWN_SIZE);
-            if (isset($in['style'])) {
-                if (!in_array($in['style'], COUNTDOWN_STYLES, true)) respond(['error' => 'Onbekend ontwerp'], 422);
-                $ch['style'] = $in['style'];
-            }
-            if (isset($in['label'])) {
-                $ch['label'] = mb_substr(trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', (string)$in['label'])), 0, MAX_COUNTDOWN_LABEL);
-            }
-            if (isset($in['showDate'])) $ch['showDate'] = (bool)$in['showDate'];
-            if (isset($in['target'])) {
-                $t = (int)$in['target'];
-                if ($t < 1 || $t > time() + MAX_COUNTDOWN_AHEAD) respond(['error' => 'Ongeldige datum'], 422);
-                $ch['target'] = $t;
-            }
-            respond(['note' => note_to_array($found($store->update($id, $ch)))]);
-
-        case 'create_wordart':
-            require_feature('WORDART', 'WordArt');
-            check_capacity(false);
-            $n = $store->create([
-                'type' => 'wordart', 'x' => $coord('x'), 'y' => $coord('y'),
-                'w' => clamp_int($in['w'] ?? WORDART_DEFAULT_W, MIN_WORDART_WIDTH, MAX_WORDART_WIDTH),
-                'h' => clamp_int($in['h'] ?? (int)round(WORDART_DEFAULT_W * 0.3), MIN_WORDART_HEIGHT, MAX_WORDART_HEIGHT),
-                'rot' => 0, 'text' => WORDART_DEFAULT_TEXT, 'style' => 'rainbow', 'shape' => 'straight',
-            ]);
-            respond(['note' => note_to_array($n)], 201);
-
-        case 'wordart_update':
-            if (($found($store->find($id))['type'] ?? '') !== 'wordart') respond(['error' => 'Alleen WordArt is hiermee aan te passen'], 400);
-            $ch = [];
-            foreach (['x', 'y'] as $k) if (isset($in[$k])) $ch[$k] = clamp_int($in[$k], 0, 100000);
-            if (isset($in['w'])) $ch['w'] = clamp_int($in['w'], MIN_WORDART_WIDTH, MAX_WORDART_WIDTH);
-            if (isset($in['h'])) $ch['h'] = clamp_int($in['h'], MIN_WORDART_HEIGHT, MAX_WORDART_HEIGHT);
-            if (isset($in['rot'])) $ch['rot'] = (((int)round((float)$in['rot'])) % 360 + 360) % 360;
-            if (isset($in['text'])) {
-                $text = mb_substr(trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', (string)$in['text'])), 0, MAX_WORDART_TEXT);
-                if ($text === '') respond(['error' => 'Vul een tekst in'], 422);
-                $ch['text'] = $text;
-            }
-            if (isset($in['style'])) {
-                if (!in_array($in['style'], WORDART_STYLES, true)) respond(['error' => 'Onbekende WordArt-stijl'], 422);
-                $ch['style'] = $in['style'];
-            }
-            if (isset($in['shape'])) {
-                if (!in_array($in['shape'], WORDART_SHAPES, true)) respond(['error' => 'Onbekende WordArt-vorm'], 422);
-                $ch['shape'] = $in['shape'];
-            }
-            respond(['note' => note_to_array($found($store->update($id, $ch)))]);
+        case 'item_update':
+            $cur = $found($store->find($id));
+            respond(['note' => note_to_array($found($store->update($id, item_changes($cur, $in))))]);
 
         case 'update':
             [$t, $b, $c] = $fields();
@@ -309,15 +295,8 @@ try {
             respond(['note' => note_to_array($found($n))]);
 
         case 'move':
+            if (!empty($found($store->find($id))['locked'])) respond(['error' => 'Dit item is vergrendeld'], 409);
             $found($store->update($id, ['x' => $coord('x'), 'y' => $coord('y')]));
-            respond(['ok' => true]);
-
-        case 'resize':
-            if (($found($store->find($id))['type'] ?? 'note') !== 'image') respond(['error' => 'Alleen afbeeldingen zijn te schalen'], 400);
-            $found($store->update($id, [
-                'w' => clamp_int($in['w'] ?? 0, MIN_IMAGE_SIZE, MAX_IMAGE_SIZE),
-                'h' => clamp_int($in['h'] ?? 0, MIN_IMAGE_SIZE, MAX_IMAGE_SIZE),
-            ]));
             respond(['ok' => true]);
 
         case 'self_update':
@@ -332,6 +311,7 @@ try {
             respond(['ok' => true, 'version' => $v]);
 
         case 'delete':
+            if (!empty($found($store->find($id))['locked'])) respond(['error' => 'Dit item is vergrendeld; ontgrendel het eerst'], 409);
             $removed = $store->delete($id);
             if (($removed['type'] ?? 'note') === 'image' && preg_match('/^[a-f0-9]{32}\.\w+$/', $removed['file'] ?? '')) {
                 @unlink(IMAGE_DIR . '/' . $removed['file']);

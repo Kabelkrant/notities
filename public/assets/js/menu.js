@@ -4,10 +4,7 @@ import { api } from './api.js';
 import { setZoom } from './zoom.js';
 import { toggleSnap } from './snap.js';
 import { openAbout } from './about.js';
-import { createArrow } from './arrow.js';
-import { createClock } from './clock.js';
-import { createCountdown } from './countdown.js';
-import { createWordart } from './wordart.js';
+import { createItem } from './create.js';
 
 // Twee uitklapmenu's (hoofdmenu en Nieuw); openen van de ene sluit de andere
 const menus = [];
@@ -43,10 +40,8 @@ const toggleMenu = setupMenu($('newBtn'), $('newMenu'));
 document.addEventListener('pointerdown', (e) => { if (!e.target.closest('.split')) for (const m of menus) m.toggle(false); });
 $('newNote').addEventListener('click', () => { toggleMenu(false); openDialog(null); });
 $('newImage').addEventListener('click', () => { toggleMenu(false); $('imageInput').click(); });
-$('newArrow').addEventListener('click', () => { toggleMenu(false); createArrow(); });
-$('newClock').addEventListener('click', () => { toggleMenu(false); createClock(); });
-$('newCountdown').addEventListener('click', () => { toggleMenu(false); createCountdown(); });
-$('newWordart').addEventListener('click', () => { toggleMenu(false); createWordart(); });
+// overige items: data-create bevat het itemtype
+for (const b of document.querySelectorAll('#newMenu [data-create]')) b.addEventListener('click', () => { toggleMenu(false); createItem(b.dataset.create); });
 $('resetZoom').addEventListener('click', () => { toggleMain(false); setZoom(1); });
 $('snapToggle').addEventListener('click', () => { toggleMain(false); toggleSnap(); });
 $('logoutBtn').addEventListener('click', async () => { toggleMain(false); try { await api({ action: 'logout' }); } finally { location.reload(); } });

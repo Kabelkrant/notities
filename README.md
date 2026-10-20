@@ -15,13 +15,14 @@ Een bord met notities, afbeeldingen, pijlen, klokken en WordArt die je vrij kunt
 - Gelijktijdig bewerken: wie een notitie opslaat die intussen door iemand anders is gewijzigd, krijgt een waarschuwing en kan bewust overschrijven
 - Over-dialoog met versie-informatie en bijwerken vanaf GitHub (zie Bijwerken)
 - Beveiligd met een wachtwoord (zie Inloggen)
+- Vergrendelen: met het 🔓-knopje (verschijnt zodra je een item selecteert) laat een item zich niet meer verplaatsen, schalen, roteren of verwijderen; bewerken kan nog. Ook de server weigert dat. Klik op 🔒 om te ontgrendelen
 - Verwijderen met ongedaan maken (6 seconden)
 - Live-sync tussen apparaten via polling (elke 4 seconden)
 
 ## Structuur
 ```
 public/        webroot: index.php, api.php, image.php, assets/ (app.css, app.js, js/ met de modules), sticky-note.png
-src/           bootstrap.php, JsonStore.php, Guard.php, Auth.php, Updater.php, NoteParsedown.php
+src/           bootstrap.php, JsonStore.php, Backup.php, Guard.php, Auth.php, Updater.php, NoteParsedown.php
 data/          notes.json en images/ (niet publiek, wordt aangemaakt/gevuld door de app)
 config.php     paden naar de data en optionele limieten
 .env           wachtwoord en instellingen (niet in git; voorbeeld: .env.example, uitleg: zie Instellingen)
@@ -47,6 +48,10 @@ parsedown.php  Markdown-library
 Alle gegevens staan in `data/` (`notes.json` en `images/`). Neem die map mee, plus `.env`, voor een back-up of een verhuizing. Zonder `data/` krijg je een lege installatie.
 `notes.json` wordt atomair weggeschreven (tijdelijk bestand en `rename`, met `notes.json.lock` voor het vergrendelen).
 
+## Back-ups
+De app maakt zelf back-ups van `data/notes.json`; een cron-job is niet nodig. Bij een wijziging wordt, als de laatste back-up ouder is dan `BACKUP_EVERY_HOURS` (standaard 1 uur; `0` zet het uit), eerst de stand van vóór die wijziging bewaard in `data/backups/notes-<datum>-<tijd>-<microseconden>.json` (bijvoorbeeld `notes-20261020-215157-218122.json`, rechten 600). Er komt dus alleen een back-up als er iets verandert. Daarna worden de oudste verwijderd tot er `BACKUP_KEEP` over zijn (standaard 100). De tijd in de naam is die van de server. De afbeeldingen in `data/images/` zitten er niet bij.
+Terugzetten: kopieer de gewenste back-up over `data/notes.json` (bij voorkeur als er even niemand aan het bord werkt).
+
 ## Misbruik voorkomen
 - **Limieten** (instelbaar in `config.php`): maximaal 500 items en 200 afbeeldingen, 500 MB aan afbeeldingen in totaal, 15 MB per afbeelding.
 - **Snelheidslimiet per IP:** 120 wijzigingen en 6 uploads per minuut, met een nette `429`-melding. Het IP komt uit `REMOTE_ADDR` (`X-Forwarded-For` wordt niet vertrouwd). Staat de app achter een proxy die het echte IP niet doorgeeft, dan delen alle bezoekers één limiet.
@@ -64,6 +69,9 @@ Kopieer `.env.example` naar `.env` (chmod 600; staat niet in git). De file bevat
 | `APP_NAME` | Naam in het inlogscherm en op het browsertabblad. | Kabelkrant Notities |
 | `IMAGE_MAX_DIMENSION` | Langste zijde (px) waarboven bij een afbeelding gevraagd wordt of hij verkleind moet worden. Tussen 100 en 5000. | 2000 |
 | `IMAGE_MAX_KB` | Bestandsgrootte (KB) waarboven die vraag verschijnt; 2048 = 2 MB. Tussen 50 en 15360. | 2048 |
+| `BACKUP_EVERY_HOURS` | Hoe vaak de app bij een wijziging een back-up maakt, zie *Back-ups*. `0` = uit. | 1 |
+| `BACKUP_KEEP` | Aantal back-ups dat bewaard blijft; oudere worden verwijderd. Tussen 1 en 10000. | 100 |
+| `ALLOW_UPDATE` | Of bijwerken via de app (menu ☰ → Over) is toegestaan, zie *Bijwerken*. | uit |
 | `ALLOW_NOTES`, `ALLOW_PICTURES`, `ALLOW_ARROW`, `ALLOW_CLOCK`, `ALLOW_COUNTDOWN`, `ALLOW_WORDART` | Welke soorten items er nog toegevoegd mogen worden, zie *Onderdelen aan- en uitzetten*. | notities aan, de rest uit |
 
 ## Inloggen
@@ -74,6 +82,8 @@ Gebruik HTTPS, anders reist het wachtwoord leesbaar over het netwerk.
 Met `ALLOW_NOTES`, `ALLOW_PICTURES`, `ALLOW_ARROW`, `ALLOW_CLOCK`, `ALLOW_COUNTDOWN` en `ALLOW_WORDART` in `.env` bepaal je welke soorten items er nog **toegevoegd** mogen worden (`1`/`0`, ook `true`/`false`, `yes`/`no` en `on`/`off`). **Ontbreekt een regel, dan staat het onderdeel uit** (ook bij een onbegrijpelijke waarde); alleen `ALLOW_NOTES` staat dan juist aan. Bij een bestaande installatie moet je de regels dus toevoegen; in `.env.example` staan alleen notities en afbeeldingen aan en pijlen en klokken uit. Bij `0` verdwijnt de keuze uit het +-menu (en bij `ALLOW_PICTURES=0` werkt plakken van een afbeelding niet meer) en weigert de server het aanmaken. Items die al op het bord staan blijven gewoon zichtbaar en kun je nog verplaatsen, bewerken en verwijderen. Staat alles uit, dan verdwijnt de +-knop.
 
 ## Bijwerken
+Bijwerken via de app staat **standaard uit**: zet `ALLOW_UPDATE=1` in `.env` om het te gebruiken. Zonder die regel is Updaten uitgeschakeld en weigert de server het ook.
+
 Menu ☰ → Over toont de huidige versie (commit) en de nieuwste op GitHub (`Kabelkrant/notities`, branch `main`; de controle wordt 10 minuten gecachet). Als er een update is, wordt **Updaten** actief; de knop haalt de zipball van exact die commit op en kopieert de bestanden over de installatie.
 - `data/`, `config.php`, `.env` en `.git*` worden nooit overschreven; overschreven bestanden gaan eerst naar `data/backup-<tijd>/` (alleen de laatste back-up blijft bewaard).
 - Bestanden die upstream zijn verwijderd, worden niet verwijderd.

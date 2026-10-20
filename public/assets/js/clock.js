@@ -1,10 +1,10 @@
 import { items, els } from './state.js';
-import { $, board, reportError } from './ui.js';
+import { $ } from './ui.js';
 import { api } from './api.js';
 import { upsert } from './render.js';
 import { poll } from './sync.js';
-import { freeSpot } from './dialog.js';
-import { CLOCK_STYLES, CLOCK_DEFAULT_SIZE, CLOCK_MAX_LABEL, clockMarkup, updateClock, timeIn } from './clockshape.js';
+import { defineType } from './types.js';
+import { CLOCK_STYLES, CLOCK_DEFAULT_SIZE, CLOCK_MIN_SIZE, CLOCK_MAX_SIZE, CLOCK_MAX_LABEL, clockMarkup, updateClock, timeIn } from './clockshape.js';
 
 /* ---------- Ticker: één timer voor alle klokken, op de hele seconde ---------- */
 function tickAll() {
@@ -20,22 +20,6 @@ function schedule() {
 }
 schedule();
 document.addEventListener('visibilitychange', tickAll); // direct bijwerken bij terugkeer naar de tab
-
-/* ---------- Nieuwe klok ---------- */
-export async function createClock() {
-  try {
-    const { x, y } = freeSpot(CLOCK_DEFAULT_SIZE, CLOCK_DEFAULT_SIZE, 20);
-    const { note } = await api({ action: 'create_clock', x, y, w: CLOCK_DEFAULT_SIZE });
-    upsert(note);
-    const el = els.get(note.id);
-    board.appendChild(el);
-    el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-    el.focus({ preventScroll: true });
-    poll();
-  } catch (err) {
-    reportError(err);
-  }
-}
 
 /* ---------- Dialoog: stijl, tijdzone, label, secondewijzer ---------- */
 const dlg = $('clockDialog'), form = $('clockForm'), preview = $('clockPreview'), styleBox = $('clockStyles'), errBox = $('clockError');
@@ -99,11 +83,17 @@ form.addEventListener('submit', async (e) => {
   const tz = form.tz.value.trim();
   if (tz !== '' && !tzSet.has(tz)) { errBox.hidden = false; errBox.textContent = 'Onbekende tijdzone. Kies er een uit de lijst, of laat het veld leeg voor lokale tijd.'; return; }
   try {
-    const { note } = await api({ action: 'clock_update', id: current.id, style: choice.style, tz, label: form.label.value.trim(), seconds: form.seconds.checked });
+    const { note } = await api({ action: 'item_update', id: current.id, style: choice.style, tz, label: form.label.value.trim(), seconds: form.seconds.checked });
     upsert(note);
     dlg.close();
     poll();
   } catch (err) {
     errBox.hidden = false; errBox.textContent = err.message;
   }
+});
+
+defineType('clock', {
+  label: 'Klok', edit: openClockDialog, dbl: true,
+  create: () => ({ w: CLOCK_DEFAULT_SIZE, top: 20 }),
+  resize: { mode: 'square', min: CLOCK_MIN_SIZE, max: CLOCK_MAX_SIZE, fields: ['w'] },
 });

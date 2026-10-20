@@ -2,48 +2,36 @@ import { UNDO_MS, GRID, items, els, pendingDelete, state } from './state.js';
 import { snapTo, showGrid } from './snap.js';
 import { board, reportError, showToast, hideToast } from './ui.js';
 import { api } from './api.js';
-import { paint, remove } from './render.js';
+import { paint, remove, upsert } from './render.js';
 import { poll } from './sync.js';
-import { openDialog } from './dialog.js';
-import { saveMove, saveArrow } from './drag.js';
-import { openArrowDialog } from './arrow.js';
-import { openClockDialog } from './clock.js';
-import { openWordartDialog } from './wordart.js';
-import { openCountdownDialog } from './countdown.js';
+import { saveMove, saveItem } from './drag.js';
+import { TYPES, typeLabel } from './types.js';
 
-// Bewerken / verwijderen / toetsenbord
+// Bewerken / vergrendelen / verwijderen / toetsenbord
 board.addEventListener('click', (e) => {
   const item = e.target.closest('.item'); if (!item) return;
-  const id = Number(item.dataset.id);
-  if (e.target.closest('.edit-btn')) { const n = items.get(id); n.type === 'arrow' ? openArrowDialog(n) : n.type === 'clock' ? openClockDialog(n) : n.type === 'countdown' ? openCountdownDialog(n) : n.type === 'wordart' ? openWordartDialog(n) : openDialog(n); }
-  if (e.target.closest('.delete-btn')) softDelete(id);
+  const id = Number(item.dataset.id), n = items.get(id);
+  if (e.target.closest('.edit-btn')) TYPES[n.type].edit(n);
+  if (e.target.closest('.lock-btn')) toggleLock(n);
+  if (e.target.closest('.delete-btn') && !n.locked) softDelete(id);
 });
 board.addEventListener('dblclick', (e) => {
-  const arrow = e.target.closest('.arrow');
-  if (arrow && !e.target.closest('button, .rotate-handle, .resize-handle')) return openArrowDialog(items.get(Number(arrow.dataset.id)));
-  const wordart = e.target.closest('.wordart');
-  if (wordart && !e.target.closest('button, .rotate-handle, .resize-handle')) return openWordartDialog(items.get(Number(wordart.dataset.id)));
-  const countdown = e.target.closest('.countdown');
-  if (countdown && !e.target.closest('button, .resize-handle')) return openCountdownDialog(items.get(Number(countdown.dataset.id)));
-  const clock = e.target.closest('.clock');
-  if (clock && !e.target.closest('button, .resize-handle')) return openClockDialog(items.get(Number(clock.dataset.id)));
-  const item = e.target.closest('.note');
-  if (item && e.target.closest('.note-head')) openDialog(items.get(Number(item.dataset.id)));
+  const item = e.target.closest('.item'); if (!item) return;
+  const n = items.get(Number(item.dataset.id)), dbl = TYPES[n.type]?.dbl;
+  if (!dbl || e.target.closest('button, .rotate-handle, .resize-handle')) return;
+  if (dbl === true || e.target.closest(dbl)) TYPES[n.type].edit(n);
 });
 board.addEventListener('keydown', (e) => {
   const item = e.target.closest('.item');
   if (!item || e.target !== item) return;
-  const id = Number(item.dataset.id), n = items.get(id);
-  if (e.key === 'Enter' && n.type === 'note') openDialog(n);
-  else if (e.key === 'Enter' && n.type === 'arrow') openArrowDialog(n);
-  else if (e.key === 'Enter' && n.type === 'clock') openClockDialog(n);
-  else if (e.key === 'Enter' && n.type === 'countdown') openCountdownDialog(n);
-  else if (e.key === 'Enter' && n.type === 'wordart') openWordartDialog(n);
-  else if ((n.type === 'arrow' || n.type === 'wordart') && e.key.toLowerCase() === 'r' && !e.ctrlKey && !e.metaKey) { // R = 15° rechtsom, Shift+R = linksom
+  const id = Number(item.dataset.id), n = items.get(id), def = TYPES[n.type];
+  if (e.key === 'Enter') def.edit?.(n);
+  else if (n.locked) return; // vergrendeld: niet verplaatsen, roteren of verwijderen
+  else if (def.rotatable && e.key.toLowerCase() === 'r' && !e.ctrlKey && !e.metaKey) { // R = 15° rechtsom, Shift+R = linksom
     n.rot = (((n.rot || 0) + (e.shiftKey ? -15 : 15)) % 360 + 360) % 360;
     paint(item, n);
     clearTimeout(n._rotTimer);
-    n._rotTimer = setTimeout(() => saveArrow(n, { rot: n.rot }), 400);
+    n._rotTimer = setTimeout(() => saveItem(n, { rot: n.rot }), 400);
   }
   else if (e.key === 'Delete') softDelete(id);
   else if (e.key.startsWith('Arrow')) {
@@ -60,6 +48,17 @@ board.addEventListener('keydown', (e) => {
   }
 });
 
+// Vergrendelen: het item laat zich niet meer verplaatsen, schalen, roteren of verwijderen (bewerken kan nog)
+async function toggleLock(n) {
+  try {
+    const { note } = await api({ action: 'item_update', id: n.id, locked: !n.locked });
+    upsert(note);
+    poll();
+  } catch (err) {
+    reportError(err);
+  }
+}
+
 function softDelete(id) {
   const n = items.get(id); if (!n) return;
   els.get(id).hidden = true;
@@ -70,8 +69,7 @@ function softDelete(id) {
   };
   const timer = setTimeout(() => { hideToast(); commit(); }, UNDO_MS);
   pendingDelete.set(id, { timer, commit });
-  const label = n.type === 'image' ? 'Afbeelding' : n.type === 'arrow' ? 'Pijl' : n.type === 'clock' ? 'Klok' : n.type === 'countdown' ? 'Countdown' : n.type === 'wordart' ? 'WordArt' : `"${n.title}"`;
-  showToast(`${label} verwijderd`, () => {
+  showToast(`${typeLabel(n)} verwijderd`, () => {
     clearTimeout(timer); pendingDelete.delete(id); els.get(id).hidden = false;
   });
 }

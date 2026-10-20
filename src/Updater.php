@@ -59,6 +59,9 @@ final class Updater
     /** Waarom updaten niet kan (null = kan wel). */
     public static function blocked(): ?string
     {
+        if (!feature_enabled('UPDATE')) {
+            return 'Bijwerken via de app staat uit (zet ALLOW_UPDATE=1 in .env om het toe te staan).';
+        }
         if (self::isGitCheckout()) {
             return 'Dit is een git-checkout; werk bij met git pull.';
         }

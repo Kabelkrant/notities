@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/../config.php';
 require __DIR__ . '/../parsedown.php';
+require __DIR__ . '/Backup.php';
 require __DIR__ . '/JsonStore.php';
 require __DIR__ . '/NoteParsedown.php';
 require __DIR__ . '/Guard.php';
@@ -129,6 +130,7 @@ function note_to_array(array $r): array {
         'x' => (int)$r['x'],
         'y' => (int)$r['y'],
         'updated' => $r['updated'],
+        'locked' => !empty($r['locked']),
     ];
     if ($base['type'] === 'image') {
         return $base + ['file' => $r['file'], 'w' => (int)$r['w'], 'h' => (int)$r['h']];
@@ -173,7 +175,7 @@ function all_notes(): array {
 
 function notes_version(array $notes): string {
     return md5(json_encode(array_map(
-        fn($n) => [$n['id'], $n['type'], $n['title'] ?? '', $n['body'] ?? '', $n['color'] ?? '', $n['file'] ?? '', $n['w'] ?? 0, $n['h'] ?? 0, $n['x'], $n['y'], $n['rot'] ?? 0, $n['style'] ?? '', $n['tz'] ?? '', $n['label'] ?? '', $n['seconds'] ?? null, $n['text'] ?? '', $n['shape'] ?? '', $n['target'] ?? 0, $n['showDate'] ?? null],
+        fn($n) => [$n['id'], $n['type'], $n['title'] ?? '', $n['body'] ?? '', $n['color'] ?? '', $n['file'] ?? '', $n['w'] ?? 0, $n['h'] ?? 0, $n['x'], $n['y'], $n['rot'] ?? 0, $n['style'] ?? '', $n['tz'] ?? '', $n['label'] ?? '', $n['seconds'] ?? null, $n['text'] ?? '', $n['shape'] ?? '', $n['target'] ?? 0, $n['showDate'] ?? null, $n['locked'] ?? false],
         $notes
     )));
 }

@@ -1,27 +1,9 @@
-import { els, items } from './state.js';
-import { $, board, reportError } from './ui.js';
+import { $ } from './ui.js';
 import { api } from './api.js';
 import { upsert } from './render.js';
 import { poll } from './sync.js';
-import { freeSpot } from './dialog.js';
-import { WORDART_STYLES, WORDART_SHAPES, WORDART_DEFAULT_W, WORDART_MAX_TEXT, wordartMarkup, wordartRatio } from './wordartshape.js';
-
-// Nieuw WordArt-item op een vrije plek
-export async function createWordart() {
-  try {
-    const h = Math.round(WORDART_DEFAULT_W * wordartRatio('WordArt', 'straight'));
-    const { x, y } = freeSpot(WORDART_DEFAULT_W, h, 60); // 60: ruimte boven voor het rotatiegreepje
-    const { note } = await api({ action: 'create_wordart', x, y, w: WORDART_DEFAULT_W, h });
-    upsert(note);
-    const el = els.get(note.id);
-    board.appendChild(el);
-    el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-    el.focus({ preventScroll: true });
-    poll();
-  } catch (err) {
-    reportError(err);
-  }
-}
+import { defineType } from './types.js';
+import { WORDART_STYLES, WORDART_SHAPES, WORDART_DEFAULT_W, WORDART_MAX_TEXT, WORDART_MIN_W, WORDART_MAX_W, WORDART_MIN_H, WORDART_MAX_H, wordartMarkup, wordartRatio } from './wordartshape.js';
 
 // Dialoog: tekst, stijl en vorm met live voorbeeld
 const dlg = $('wordartDialog'), form = $('wordartForm'), preview = $('wordartPreview'), styleBox = $('wordartStyles'), shapeBox = $('wordartShapes'), errBox = $('wordartError');
@@ -70,11 +52,17 @@ form.addEventListener('submit', async (e) => {
     // verandert de tekst of vorm, dan volgt de hoogte de nieuwe tekening; een zelf gekozen uitrekking blijft behouden
     const stretch = current.h / (current.w * wordartRatio(current.text, current.shape)) || 1;
     const h = Math.round(current.w * wordartRatio(text, choice.shape) * stretch);
-    const { note } = await api({ action: 'wordart_update', id: current.id, text, style: choice.style, shape: choice.shape, h });
+    const { note } = await api({ action: 'item_update', id: current.id, text, style: choice.style, shape: choice.shape, h });
     upsert(note);
     dlg.close();
     poll();
   } catch (err) {
     errBox.textContent = err.message; errBox.hidden = false;
   }
+});
+
+defineType('wordart', {
+  label: 'WordArt', edit: openWordartDialog, dbl: true, rotatable: true,
+  create: () => ({ w: WORDART_DEFAULT_W, h: Math.round(WORDART_DEFAULT_W * wordartRatio('WordArt', 'straight')), top: 60 }),
+  resize: { mode: 'box', min: WORDART_MIN_W, max: WORDART_MAX_W, minH: WORDART_MIN_H, maxH: WORDART_MAX_H, keepRatio: true, fields: ['x', 'y', 'w', 'h'] },
 });

@@ -6,7 +6,7 @@ import { clockMarkup, updateClock, timeIn } from './clockshape.js';
 import { countdownMarkup, updateCountdown, secondsLeft } from './countdownshape.js';
 import { wordartMarkup, wordartRatio } from './wordartshape.js';
 
-const sig = (n) => [n.type, n.title, n.body, n.color, n.file, n.x, n.y, n.w, n.h, n.rot, n.style, n.tz, n.label, n.seconds, n.text, n.shape, n.target, n.showDate, n.updated].join('\u0001');
+const sig = (n) => [n.type, n.title, n.body, n.color, n.file, n.x, n.y, n.w, n.h, n.rot, n.style, n.tz, n.label, n.seconds, n.text, n.shape, n.target, n.showDate, n.locked, n.updated].join('\u0001');
 
 function buildItem(n) {
   const el = document.createElement(n.type === 'image' ? 'figure' : 'article');
@@ -20,6 +20,7 @@ function buildItem(n) {
       <span class="resize-handle" aria-hidden="true"></span>
       <div class="wordart-actions">
         <button type="button" class="edit-btn" title="Tekst, stijl en vorm" aria-label="Tekst, stijl en vorm">✏️</button>
+        <button type="button" class="lock-btn" title="Vergrendelen" aria-label="Vergrendelen" aria-pressed="false">🔓</button>
         <button type="button" class="delete-btn" title="Verwijderen" aria-label="Verwijderen">🗑️</button>
       </div>`;
   } else if (n.type === 'countdown') {
@@ -30,6 +31,7 @@ function buildItem(n) {
       <span class="resize-handle" aria-hidden="true"></span>
       <div class="countdown-actions">
         <button type="button" class="edit-btn" title="Ontwerp, label en datum" aria-label="Ontwerp, label en datum">✏️</button>
+        <button type="button" class="lock-btn" title="Vergrendelen" aria-label="Vergrendelen" aria-pressed="false">🔓</button>
         <button type="button" class="delete-btn" title="Verwijderen" aria-label="Verwijderen">🗑️</button>
       </div>`;
   } else if (n.type === 'clock') {
@@ -41,6 +43,7 @@ function buildItem(n) {
       <span class="resize-handle" aria-hidden="true"></span>
       <div class="clock-actions">
         <button type="button" class="edit-btn" title="Stijl, tijdzone en label" aria-label="Stijl, tijdzone en label">✏️</button>
+        <button type="button" class="lock-btn" title="Vergrendelen" aria-label="Vergrendelen" aria-pressed="false">🔓</button>
         <button type="button" class="delete-btn" title="Verwijderen" aria-label="Verwijderen">🗑️</button>
       </div>`;
   } else if (n.type === 'arrow') {
@@ -52,6 +55,7 @@ function buildItem(n) {
       <span class="resize-handle" aria-hidden="true"></span>
       <div class="arrow-actions">
         <button type="button" class="edit-btn" title="Ontwerp en kleur" aria-label="Ontwerp en kleur">✏️</button>
+        <button type="button" class="lock-btn" title="Vergrendelen" aria-label="Vergrendelen" aria-pressed="false">🔓</button>
         <button type="button" class="delete-btn" title="Verwijderen" aria-label="Verwijderen">🗑️</button>
       </div>`;
   } else if (n.type === 'image') {
@@ -59,7 +63,8 @@ function buildItem(n) {
     el.setAttribute('aria-label', 'Afbeelding');
     el.innerHTML = `
       <img alt="" draggable="false">
-      <button type="button" class="delete-btn" title="Verwijderen" aria-label="Verwijderen">🗑️</button>
+      <button type="button" class="lock-btn" title="Vergrendelen" aria-label="Vergrendelen" aria-pressed="false">🔓</button>
+        <button type="button" class="delete-btn" title="Verwijderen" aria-label="Verwijderen">🗑️</button>
       <span class="resize-handle" aria-hidden="true"></span>`;
     el.querySelector('img').src = 'image.php?f=' + encodeURIComponent(n.file);
   } else {
@@ -68,6 +73,7 @@ function buildItem(n) {
       <div class="note-head" title="Sleep om te verplaatsen"></div>
       <div class="note-actions">
         <button type="button" class="edit-btn" title="Bewerken" aria-label="Bewerken">✏️</button>
+        <button type="button" class="lock-btn" title="Vergrendelen" aria-label="Vergrendelen" aria-pressed="false">🔓</button>
         <button type="button" class="delete-btn" title="Verwijderen" aria-label="Verwijderen">🗑️</button>
       </div>
       <strong class="title-text"></strong>
@@ -76,7 +82,19 @@ function buildItem(n) {
   return el;
 }
 
+// Vergrendeling: klasse op het item en de stand van de knop
+function paintLock(el, n) {
+  const locked = !!n.locked;
+  el.classList.toggle('locked', locked);
+  const btn = el.querySelector('.lock-btn');
+  if (!btn) return;
+  const label = locked ? 'Ontgrendelen' : 'Vergrendelen';
+  btn.textContent = locked ? '🔒' : '🔓';
+  btn.title = label; btn.setAttribute('aria-label', label); btn.setAttribute('aria-pressed', String(locked));
+}
+
 export function paint(el, n) {
+  paintLock(el, n);
   el.style.left = n.x + 'px';
   el.style.top = n.y + 'px';
   if (n.type === 'wordart') {
