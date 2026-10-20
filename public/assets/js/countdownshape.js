@@ -5,6 +5,7 @@ export const COUNTDOWN_DEFAULT_SIZE = 200, COUNTDOWN_MIN_SIZE = 120, COUNTDOWN_M
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const CHALK = "'Bradley Hand', 'Segoe Print', 'Chalkboard SE', 'Comic Sans MS', cursive", SANS = "'Segoe UI', Arial, sans-serif", MONO = "'Courier New', Courier, monospace";
+const r2 = (v) => Math.round(v * 100) / 100;
 let uidCounter = 0;
 
 /* ---------- Resterende tijd ---------- */
@@ -22,7 +23,7 @@ const SKINS = {
   classic: { label: '#1d2433', nog: '#7a8497', num: '#111827', unit: '#5b6577', font: SANS, weight: 700 },
   digital: { label: '#8dffab', nog: '#4fbf6c', num: '#5dff8a', unit: '#4fbf6c', font: MONO, weight: 700 },
   flip: { label: '#f1f1f4', nog: '#9a9ca6', num: '#f6f6f8', unit: '#9a9ca6', font: SANS, weight: 700, tiles: true },
-  chalk: { label: '#fffdf2', nog: '#d9d6c4', num: '#fffdf2', unit: '#d9d6c4', font: CHALK, ui: CHALK, weight: 700 },
+  chalk: { label: '#fffdf2', nog: '#d9d6c4', num: '#fffdf2', unit: '#d9d6c4', font: CHALK, ui: CHALK, weight: 700, numScale: 0.86 },
   color: { label: '#ffffff', nog: 'rgba(255,255,255,.82)', num: '#ffffff', unit: 'rgba(255,255,255,.88)', font: SANS, weight: 800 },
 };
 
@@ -37,7 +38,7 @@ function background(style, id) {
         <linearGradient id="${id('wood')}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b98652"/><stop offset="1" stop-color="#6e4723"/></linearGradient></defs>
         <rect x="2" y="2" width="196" height="196" rx="26" fill="url(#${id('wood')})"/>
         <rect x="11" y="11" width="178" height="178" rx="17" fill="url(#${id('bg')})" stroke="#1a2a20" stroke-width="2"/>
-        <path d="M30,182 q40,-5 80,-1 t60,-1" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="5" stroke-linecap="round"/>`;
+        <path d="M30,186 q40,-4 80,-1 t60,-1" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="5" stroke-linecap="round"/>`;
     case 'flip':
       return `<rect x="2" y="2" width="196" height="196" rx="30" fill="#1c1d21" stroke="#0a0a0c" stroke-width="2"/>`;
     case 'color':
@@ -60,15 +61,25 @@ function dateText(target) {
 
 export function countdownMarkup(n) {
   const uid = `d${++uidCounter}_`, id = (k) => uid + k, k = SKINS[n.style] || SKINS.classic, UI = k.ui || SANS;
-  // met streefdatum onderin is alles iets compacter
-  const L = n.showDate !== false ? { label: 34, nog: n.label ? 54 : 50, num: 114, tileY: 62, tileH: 72, unit: 146, date: 178 } : { label: 38, nog: n.label ? 62 : 54, num: 130, tileY: 72, tileH: 76, unit: 170 };
-  const size = n.showDate !== false ? 0.9 : 1;
+  // Indeling per variant (met/zonder streefdatum onderin, met/zonder omklapkaartjes); getallen en eenheden staan dicht op elkaar
+  const withDate = n.showDate !== false;
+  const L = withDate
+    ? (k.tiles ? { label: 34, nog: 56, tileY: 74, tileH: 56, num: 118, unit: 146, date: 176 } : { label: 34, nog: 58, num: 124, unit: 143, date: 174 })
+    : (k.tiles ? { label: 46, nog: 76, tileY: 87, tileH: 64, num: 137, unit: 166 } : { label: 50, nog: 80, num: 142, unit: 161 });
+  L.nog -= 3; // 'nog' iets dichter onder het label
+  for (const key of ['tileY', 'num', 'unit']) if (L[key] !== undefined) L[key] -= 4;
+  if (!n.label) { // zonder label schuift de middenpartij omhoog, zodat het geheel in het midden blijft
+    const up = withDate ? 8 : 18;
+    for (const key of ['nog', 'tileY', 'num', 'unit']) if (L[key] !== undefined) L[key] -= up;
+  }
+  const size = k.tiles && withDate ? 0.9 : 1;
   const label = n.label ? (() => {
     const long = [...n.label].length * 10 > 168;
     return `<text x="100" y="${L.label}" text-anchor="middle" font-family="${UI}" font-size="18" font-weight="700" fill="${k.label}"${long ? ' textLength="168" lengthAdjust="spacingAndGlyphs"' : ''}>${esc(n.label)}</text>`;
   })() : '';
   const tiles = k.tiles ? [24, 112].map((x) => `<rect x="${x}" y="${L.tileY}" width="64" height="${L.tileH}" rx="9" fill="#2f3036" stroke="#0d0d0f" stroke-width="1.5"/><rect x="${x}" y="${L.tileY + L.tileH / 2 - 0.8}" width="64" height="1.6" fill="#0d0d0f"/>`).join('') : '';
-  const num = (cls, x) => `<text class="${cls}" x="${x}" y="${k.tiles ? L.tileY + L.tileH / 2 + 15 * size : L.num}" text-anchor="middle" font-family="${k.font}" font-size="${(k.tiles ? 50 : 58) * size}" font-weight="${k.weight}" fill="${k.num}"></text>`;
+  const FS = r2((k.tiles ? 50 : 58) * size * (k.numScale || 1));
+  const num = (cls, x) => `<text class="${cls}" x="${x}" y="${L.num}" text-anchor="middle" font-family="${k.font}" font-size="${FS}" data-fs="${FS}" font-weight="${k.weight}" fill="${k.num}"></text>`;
   const unit = (cls, x) => `<text class="${cls}" x="${x}" y="${L.unit}" text-anchor="middle" font-family="${UI}" font-size="15" font-weight="600" fill="${k.unit}"></text>`;
   const dt = n.showDate !== false ? dateText(n.target) : '';
   const date = dt ? `<text x="100" y="${L.date}" text-anchor="middle" font-family="${UI}" font-size="15" font-weight="600" fill="${k.nog}"${dt.length * 8.3 > 172 ? ' textLength="172" lengthAdjust="spacingAndGlyphs"' : ''}>${esc(dt)}</text>` : '';
@@ -98,8 +109,7 @@ export function updateCountdown(box, n, s) {
     p.forEach(([count, one, many], i) => {
       const num = box.querySelector('.cd-n' + (i + 1)), txt = pad ? String(count).padStart(2, '0') : String(count);
       num.textContent = txt;
-      if (txt.length > 2) { num.setAttribute('textLength', '62'); num.setAttribute('lengthAdjust', 'spacingAndGlyphs'); }
-      else { num.removeAttribute('textLength'); num.removeAttribute('lengthAdjust'); }
+      num.setAttribute('font-size', r2(num.dataset.fs * (txt.length > 3 ? 0.58 : txt.length > 2 ? 0.76 : 1))); // drie of meer cijfers: kleiner in plaats van samengeperst
       box.querySelector('.cd-u' + (i + 1)).textContent = count === 1 ? one : many;
     });
   }
