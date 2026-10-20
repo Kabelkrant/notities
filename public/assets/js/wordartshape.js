@@ -4,7 +4,7 @@ export const WORDART_STYLES = [
   ['rainbow', 'Regenboog'], ['chrome', 'Chroom'], ['gold', 'Goud 3D'], ['neon', 'Neon'], ['fire', 'Vuur'], ['retro', 'Retro'], ['comic', 'Strip'],
 ];
 export const WORDART_SHAPES = [['straight', 'Recht'], ['arch_up', 'Boog omhoog'], ['arch_down', 'Boog omlaag'], ['wave', 'Golf']];
-export const WORDART_MIN_W = 60, WORDART_MAX_W = 3000, WORDART_MAX_TEXT = 60, WORDART_DEFAULT_W = 260;
+export const WORDART_MIN_W = 60, WORDART_MAX_W = 3000, WORDART_MIN_H = 20, WORDART_MAX_H = 3000, WORDART_MAX_TEXT = 60, WORDART_DEFAULT_W = 260;
 
 const F = 48; // lettergrootte in viewBox-eenheden; alles schaalt mee met de breedte van het item
 const IMPACT = "Impact, 'Arial Black', 'Helvetica Neue', Arial, sans-serif";
@@ -104,6 +104,6 @@ export function wordartMarkup(n) {
     ? `<textPath href="#${id('p')}" startOffset="50%" textLength="${r2(g.textLen)}" lengthAdjust="spacingAndGlyphs">${esc(text)}</textPath>`
     : esc(text);
   const uses = s.layers.map((l) => `<use href="#${id('t')}" ${Object.entries(l).map(([k, v]) => `${k}="${v}"`).join(' ')}/>`).join('');
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${r2(g.W)} ${r2(g.H)}" aria-hidden="true"><defs>${s.defs}${g.path ? `<path id="${id('p')}" d="${g.path}"/>` : ''}`
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${r2(g.W)} ${r2(g.H)}" preserveAspectRatio="none" aria-hidden="true"><defs>${s.defs}${g.path ? `<path id="${id('p')}" d="${g.path}"/>` : ''}`
     + `<text id="${id('t')}" font-family="${s.font}" font-weight="${s.weight || 400}" font-size="${F}" text-anchor="middle"${attrsTxt}>${body}</text></defs>${uses}</svg>`;
 }

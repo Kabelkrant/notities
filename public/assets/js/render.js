@@ -69,7 +69,7 @@ export function paint(el, n) {
   el.style.left = n.x + 'px';
   el.style.top = n.y + 'px';
   if (n.type === 'wordart') {
-    n.h = Math.max(1, Math.round(n.w * wordartRatio(n.text, n.shape))); // de hoogte volgt uit de breedte (verhouding van de tekening)
+    if (!n.h) n.h = Math.max(1, Math.round(n.w * wordartRatio(n.text, n.shape))); // oudere items zonder hoogte: natuurlijke verhouding van de tekening
     el.style.width = n.w + 'px';
     el.style.height = n.h + 'px';
     el.style.setProperty('--rot', n.rot || 0);

@@ -9,9 +9,9 @@ import { WORDART_STYLES, WORDART_SHAPES, WORDART_DEFAULT_W, WORDART_MAX_TEXT, wo
 // Nieuw WordArt-item op een vrije plek
 export async function createWordart() {
   try {
-    const ratio = wordartRatio('WordArt', 'straight');
-    const { x, y } = freeSpot(WORDART_DEFAULT_W, Math.round(WORDART_DEFAULT_W * ratio), 60); // 60: ruimte boven voor het rotatiegreepje
-    const { note } = await api({ action: 'create_wordart', x, y, w: WORDART_DEFAULT_W });
+    const h = Math.round(WORDART_DEFAULT_W * wordartRatio('WordArt', 'straight'));
+    const { x, y } = freeSpot(WORDART_DEFAULT_W, h, 60); // 60: ruimte boven voor het rotatiegreepje
+    const { note } = await api({ action: 'create_wordart', x, y, w: WORDART_DEFAULT_W, h });
     upsert(note);
     const el = els.get(note.id);
     board.appendChild(el);
@@ -67,7 +67,10 @@ form.addEventListener('submit', async (e) => {
   const text = form.text.value.trim();
   if (!text) { errBox.textContent = 'Vul een tekst in'; errBox.hidden = false; form.text.focus(); return; }
   try {
-    const { note } = await api({ action: 'wordart_update', id: current.id, text, style: choice.style, shape: choice.shape });
+    // verandert de tekst of vorm, dan volgt de hoogte de nieuwe tekening; een zelf gekozen uitrekking blijft behouden
+    const stretch = current.h / (current.w * wordartRatio(current.text, current.shape)) || 1;
+    const h = Math.round(current.w * wordartRatio(text, choice.shape) * stretch);
+    const { note } = await api({ action: 'wordart_update', id: current.id, text, style: choice.style, shape: choice.shape, h });
     upsert(note);
     dlg.close();
     poll();

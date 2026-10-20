@@ -6,7 +6,7 @@ import { snapTo, showGrid } from './snap.js';
 import { paint } from './render.js';
 import { ARROW_MIN_W, ARROW_MIN_H, ARROW_MAX_H } from './arrowshape.js';
 import { CLOCK_MIN_SIZE, CLOCK_MAX_SIZE } from './clockshape.js';
-import { WORDART_MIN_W, WORDART_MAX_W, wordartRatio } from './wordartshape.js';
+import { WORDART_MIN_W, WORDART_MAX_W, WORDART_MIN_H, WORDART_MAX_H } from './wordartshape.js';
 
 // Slepen, schalen en roteren (Pointer Events)
 let drag = null, resize = null, rotate = null;
@@ -53,11 +53,14 @@ function resizeArrow(e) {
   const dx = (e.clientX - resize.sx) / z, dy = (e.clientY - resize.sy) / z;
   const lx = dx * cos + dy * sin, ly = -dx * sin + dy * cos; // aanwijzerbeweging in de assen van het item
   let nw, nh;
-  if (n.type === 'wordart') { // verhouding blijft: de hoek wordt op de diagonaal geprojecteerd (standaard proportioneel schalen)
-    const ratio = wordartRatio(n.text, n.shape), ow = resize.ow, oh = resize.oh;
+  if (n.type === 'wordart' && e.shiftKey) { // met Shift blijft de verhouding gelijk: de hoek wordt op de diagonaal geprojecteerd
+    const ow = resize.ow, oh = resize.oh;
     const s = ((ow + lx) * ow + (oh + ly) * oh) / (ow * ow + oh * oh);
     nw = clamp(Math.round(ow * s), WORDART_MIN_W, WORDART_MAX_W);
-    nh = Math.max(1, Math.round(nw * ratio));
+    nh = clamp(Math.round(nw * oh / ow), WORDART_MIN_H, WORDART_MAX_H);
+  } else if (n.type === 'wordart') { // standaard vrij: breedte en hoogte los van elkaar
+    nw = clamp(Math.round(resize.ow + lx), WORDART_MIN_W, WORDART_MAX_W);
+    nh = clamp(Math.round(resize.oh + ly), WORDART_MIN_H, WORDART_MAX_H);
   } else {
     nw = clamp(Math.round(resize.ow + lx), ARROW_MIN_W, MAX_SIZE);
     nh = clamp(Math.round(resize.oh + ly), ARROW_MIN_H, ARROW_MAX_H);
@@ -125,7 +128,7 @@ function endPointer(e) {
     const req = n.type === 'arrow'
       ? api({ action: 'arrow_update', id: n.id, x: n.x, y: n.y, w: n.w, h: n.h })
       : n.type === 'wordart'
-        ? api({ action: 'wordart_update', id: n.id, x: n.x, y: n.y, w: n.w })
+        ? api({ action: 'wordart_update', id: n.id, x: n.x, y: n.y, w: n.w, h: n.h })
         : n.type === 'clock'
         ? api({ action: 'clock_update', id: n.id, w: n.w })
         : api({ action: 'resize', id: n.id, w: n.w, h: n.h });

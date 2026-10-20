@@ -48,6 +48,8 @@ const WORDART_DEFAULT_TEXT = 'WordArt';
 const WORDART_DEFAULT_W = 260;
 const MIN_WORDART_WIDTH = 60;
 const MAX_WORDART_WIDTH = 3000;
+const MIN_WORDART_HEIGHT = 20;
+const MAX_WORDART_HEIGHT = 3000;
 const MAX_WORDART_TEXT = 60;
 const IMAGE_FIT = 262; // beginformaat: past binnen IMAGE_FIT x IMAGE_FIT
 const IMAGE_TYPES = [
@@ -126,7 +128,7 @@ function note_to_array(array $r): array {
     }
     if ($base['type'] === 'wordart') {
         return $base + [
-            'w' => (int)$r['w'], 'rot' => (int)($r['rot'] ?? 0), 'text' => $r['text'] ?? WORDART_DEFAULT_TEXT,
+            'w' => (int)$r['w'], 'h' => (int)($r['h'] ?? 0), 'rot' => (int)($r['rot'] ?? 0), 'text' => $r['text'] ?? WORDART_DEFAULT_TEXT,
             'style' => $r['style'] ?? 'rainbow', 'shape' => $r['shape'] ?? 'straight',
         ];
     }

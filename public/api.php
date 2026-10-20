@@ -235,6 +235,7 @@ try {
             $n = $store->create([
                 'type' => 'wordart', 'x' => $coord('x'), 'y' => $coord('y'),
                 'w' => clamp_int($in['w'] ?? WORDART_DEFAULT_W, MIN_WORDART_WIDTH, MAX_WORDART_WIDTH),
+                'h' => clamp_int($in['h'] ?? (int)round(WORDART_DEFAULT_W * 0.3), MIN_WORDART_HEIGHT, MAX_WORDART_HEIGHT),
                 'rot' => 0, 'text' => WORDART_DEFAULT_TEXT, 'style' => 'rainbow', 'shape' => 'straight',
             ]);
             respond(['note' => note_to_array($n)], 201);
@@ -244,6 +245,7 @@ try {
             $ch = [];
             foreach (['x', 'y'] as $k) if (isset($in[$k])) $ch[$k] = clamp_int($in[$k], 0, 100000);
             if (isset($in['w'])) $ch['w'] = clamp_int($in['w'], MIN_WORDART_WIDTH, MAX_WORDART_WIDTH);
+            if (isset($in['h'])) $ch['h'] = clamp_int($in['h'], MIN_WORDART_HEIGHT, MAX_WORDART_HEIGHT);
             if (isset($in['rot'])) $ch['rot'] = (((int)round((float)$in['rot'])) % 360 + 360) % 360;
             if (isset($in['text'])) {
                 $text = mb_substr(trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', (string)$in['text'])), 0, MAX_WORDART_TEXT);
