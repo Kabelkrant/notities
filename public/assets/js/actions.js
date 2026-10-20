@@ -9,12 +9,13 @@ import { saveMove, saveArrow } from './drag.js';
 import { openArrowDialog } from './arrow.js';
 import { openClockDialog } from './clock.js';
 import { openWordartDialog } from './wordart.js';
+import { openCountdownDialog } from './countdown.js';
 
 // Bewerken / verwijderen / toetsenbord
 board.addEventListener('click', (e) => {
   const item = e.target.closest('.item'); if (!item) return;
   const id = Number(item.dataset.id);
-  if (e.target.closest('.edit-btn')) { const n = items.get(id); n.type === 'arrow' ? openArrowDialog(n) : n.type === 'clock' ? openClockDialog(n) : n.type === 'wordart' ? openWordartDialog(n) : openDialog(n); }
+  if (e.target.closest('.edit-btn')) { const n = items.get(id); n.type === 'arrow' ? openArrowDialog(n) : n.type === 'clock' ? openClockDialog(n) : n.type === 'countdown' ? openCountdownDialog(n) : n.type === 'wordart' ? openWordartDialog(n) : openDialog(n); }
   if (e.target.closest('.delete-btn')) softDelete(id);
 });
 board.addEventListener('dblclick', (e) => {
@@ -22,6 +23,8 @@ board.addEventListener('dblclick', (e) => {
   if (arrow && !e.target.closest('button, .rotate-handle, .resize-handle')) return openArrowDialog(items.get(Number(arrow.dataset.id)));
   const wordart = e.target.closest('.wordart');
   if (wordart && !e.target.closest('button, .rotate-handle, .resize-handle')) return openWordartDialog(items.get(Number(wordart.dataset.id)));
+  const countdown = e.target.closest('.countdown');
+  if (countdown && !e.target.closest('button, .resize-handle')) return openCountdownDialog(items.get(Number(countdown.dataset.id)));
   const clock = e.target.closest('.clock');
   if (clock && !e.target.closest('button, .resize-handle')) return openClockDialog(items.get(Number(clock.dataset.id)));
   const item = e.target.closest('.note');
@@ -34,6 +37,7 @@ board.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && n.type === 'note') openDialog(n);
   else if (e.key === 'Enter' && n.type === 'arrow') openArrowDialog(n);
   else if (e.key === 'Enter' && n.type === 'clock') openClockDialog(n);
+  else if (e.key === 'Enter' && n.type === 'countdown') openCountdownDialog(n);
   else if (e.key === 'Enter' && n.type === 'wordart') openWordartDialog(n);
   else if ((n.type === 'arrow' || n.type === 'wordart') && e.key.toLowerCase() === 'r' && !e.ctrlKey && !e.metaKey) { // R = 15° rechtsom, Shift+R = linksom
     n.rot = (((n.rot || 0) + (e.shiftKey ? -15 : 15)) % 360 + 360) % 360;
@@ -66,7 +70,7 @@ function softDelete(id) {
   };
   const timer = setTimeout(() => { hideToast(); commit(); }, UNDO_MS);
   pendingDelete.set(id, { timer, commit });
-  const label = n.type === 'image' ? 'Afbeelding' : n.type === 'arrow' ? 'Pijl' : n.type === 'clock' ? 'Klok' : n.type === 'wordart' ? 'WordArt' : `"${n.title}"`;
+  const label = n.type === 'image' ? 'Afbeelding' : n.type === 'arrow' ? 'Pijl' : n.type === 'clock' ? 'Klok' : n.type === 'countdown' ? 'Countdown' : n.type === 'wordart' ? 'WordArt' : `"${n.title}"`;
   showToast(`${label} verwijderd`, () => {
     clearTimeout(timer); pendingDelete.delete(id); els.get(id).hidden = false;
   });

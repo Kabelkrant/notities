@@ -222,3 +222,24 @@ input[type=color] { padding: 0; height: 2.2rem; width: 100%; }
 @media (prefers-color-scheme: dark) {
   .toast { box-shadow: 0 0 0 1px rgba(255,255,255,.12), 0 8px 24px rgba(0,0,0,.5); }
 }
+
+/* Afteltimers: vierkant item met een tekening in vier skins; de getallen worden in de browser bijgewerkt */
+.countdown { position: absolute; margin: 0; cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; outline: none; }
+.countdown.dragging { cursor: grabbing; }
+.countdown-art { position: relative; width: 100%; height: 100%; pointer-events: none; border-radius: 15%; box-shadow: 0 4px 10px rgba(0,0,0,.3); }
+.countdown-art svg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.countdown:focus-within { outline: 1px dashed color-mix(in srgb, var(--text) 55%, transparent); outline-offset: 5px; border-radius: 15%; }
+.countdown .resize-handle, .countdown .countdown-actions { visibility: hidden; position: absolute; }
+.countdown:focus-within .resize-handle, .countdown:focus-within .countdown-actions { visibility: visible; }
+.countdown .resize-handle { right: -6px; bottom: -6px; width: 18px; height: 18px; border-radius: 4px; background: #fff; border: 2px solid var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.35); cursor: nwse-resize; touch-action: none; }
+.countdown .countdown-actions { left: 50%; top: calc(100% + 12px); display: flex; gap: 6px; transform: translateX(-50%); }
+.countdown .countdown-actions button { width: 28px; height: 28px; padding: 0; line-height: 1; border: none; border-radius: 50%; background: rgba(255,255,255,.95); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+@media (pointer: coarse) { .countdown .resize-handle { width: 26px; height: 26px; } }
+.countdown.done .countdown-art { animation: countdown-done 1s ease-in-out infinite alternate; }
+@keyframes countdown-done { from { box-shadow: 0 0 0 0 rgba(255,193,7,.9), 0 4px 10px rgba(0,0,0,.3); } to { box-shadow: 0 0 0 10px rgba(255,193,7,0), 0 4px 10px rgba(0,0,0,.3); } }
+@media (prefers-reduced-motion: reduce) { .countdown.done .countdown-art { animation: none; outline: 3px solid #ffc107; } }
+#countdownPreview { width: 150px; height: 150px; flex: none; }
+.countdown-styles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .4rem; }
+.countdown-styles button { display: grid; place-items: center; padding: .3rem; }
+.countdown-styles .countdown-art { width: 100%; max-width: 3.6rem; height: auto; aspect-ratio: 1; box-shadow: none; }
+.countdown-styles button[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 1px; }

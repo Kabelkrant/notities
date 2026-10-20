@@ -6,6 +6,7 @@ import { snapTo, showGrid } from './snap.js';
 import { paint } from './render.js';
 import { ARROW_MIN_W, ARROW_MIN_H, ARROW_MAX_H } from './arrowshape.js';
 import { CLOCK_MIN_SIZE, CLOCK_MAX_SIZE } from './clockshape.js';
+import { COUNTDOWN_MIN_SIZE, COUNTDOWN_MAX_SIZE } from './countdownshape.js';
 import { WORDART_MIN_W, WORDART_MAX_W, WORDART_MIN_H, WORDART_MAX_H } from './wordartshape.js';
 
 // Slepen, schalen en roteren (Pointer Events)
@@ -86,9 +87,10 @@ board.addEventListener('pointermove', (e) => {
   if (resize && e.pointerId === resize.id) {
     const { n, item } = resize;
     if (n.type === 'arrow' || n.type === 'wordart') return resizeArrow(e);
-    if (n.type === 'clock') {
+    if (n.type === 'clock' || n.type === 'countdown') {
       const d = ((e.clientX - resize.sx) + (e.clientY - resize.sy)) / 2 / state.zoom; // vierkant: gemiddelde van de x- en y-beweging
-      n.w = n.h = clamp(Math.round(resize.ow + d), CLOCK_MIN_SIZE, CLOCK_MAX_SIZE);
+      const [lo, hi] = n.type === 'clock' ? [CLOCK_MIN_SIZE, CLOCK_MAX_SIZE] : [COUNTDOWN_MIN_SIZE, COUNTDOWN_MAX_SIZE];
+      n.w = n.h = clamp(Math.round(resize.ow + d), lo, hi);
       return paint(item, n);
     }
     n.w = Math.min(MAX_SIZE, Math.max(MIN_SIZE, Math.round(resize.ow + (e.clientX - resize.sx) / state.zoom)));
@@ -131,6 +133,8 @@ function endPointer(e) {
         ? api({ action: 'wordart_update', id: n.id, x: n.x, y: n.y, w: n.w, h: n.h })
         : n.type === 'clock'
         ? api({ action: 'clock_update', id: n.id, w: n.w })
+        : n.type === 'countdown'
+        ? api({ action: 'countdown_update', id: n.id, w: n.w })
         : api({ action: 'resize', id: n.id, w: n.w, h: n.h });
     req.then(poll).catch((err) => reportError(new Error('Formaat opslaan mislukt: ' + err.message)));
     return;

@@ -42,6 +42,13 @@ const CLOCK_DEFAULT_SIZE = 160;
 const MIN_CLOCK_SIZE = 80;
 const MAX_CLOCK_SIZE = 600;
 const MAX_CLOCK_LABEL = 40;
+const COUNTDOWN_STYLES = ['classic', 'digital', 'flip', 'color']; // klassiek, digitaal, omklapkaartjes, kleurrijk
+const COUNTDOWN_DEFAULT_SIZE = 200;
+const MIN_COUNTDOWN_SIZE = 120;
+const MAX_COUNTDOWN_SIZE = 600;
+const MAX_COUNTDOWN_LABEL = 40;
+const MAX_COUNTDOWN_AHEAD = 100 * 365 * 86400; // streefdatum hooguit 100 jaar vooruit
+const ITEM_TYPES = ['note', 'image', 'arrow', 'clock', 'wordart', 'countdown']; // onbekende types (bijv. na een terugdraaiing) worden niet getoond
 const WORDART_STYLES = ['rainbow', 'chrome', 'gold', 'neon', 'fire', 'retro', 'comic'];
 const WORDART_SHAPES = ['straight', 'arch_up', 'arch_down', 'wave'];
 const WORDART_DEFAULT_TEXT = 'WordArt';
@@ -132,6 +139,12 @@ function note_to_array(array $r): array {
             'style' => $r['style'] ?? 'rainbow', 'shape' => $r['shape'] ?? 'straight',
         ];
     }
+    if ($base['type'] === 'countdown') {
+        return $base + [
+            'w' => (int)$r['w'], 'h' => (int)$r['w'], 'style' => $r['style'] ?? 'classic',
+            'label' => $r['label'] ?? '', 'target' => (int)($r['target'] ?? 0), 'showDate' => (bool)($r['showDate'] ?? true),
+        ];
+    }
     if ($base['type'] === 'clock') {
         return $base + [
             'w' => (int)$r['w'], 'h' => (int)$r['w'], 'style' => $r['style'] ?? 'classic',
@@ -154,12 +167,13 @@ function note_to_array(array $r): array {
 
 /** @return list<array<string,mixed>> */
 function all_notes(): array {
-    return array_map('note_to_array', store()->all());
+    $known = array_filter(store()->all(), fn($r) => in_array($r['type'] ?? 'note', ITEM_TYPES, true));
+    return array_map('note_to_array', array_values($known));
 }
 
 function notes_version(array $notes): string {
     return md5(json_encode(array_map(
-        fn($n) => [$n['id'], $n['type'], $n['title'] ?? '', $n['body'] ?? '', $n['color'] ?? '', $n['file'] ?? '', $n['w'] ?? 0, $n['h'] ?? 0, $n['x'], $n['y'], $n['rot'] ?? 0, $n['style'] ?? '', $n['tz'] ?? '', $n['label'] ?? '', $n['seconds'] ?? null, $n['text'] ?? '', $n['shape'] ?? ''],
+        fn($n) => [$n['id'], $n['type'], $n['title'] ?? '', $n['body'] ?? '', $n['color'] ?? '', $n['file'] ?? '', $n['w'] ?? 0, $n['h'] ?? 0, $n['x'], $n['y'], $n['rot'] ?? 0, $n['style'] ?? '', $n['tz'] ?? '', $n['label'] ?? '', $n['seconds'] ?? null, $n['text'] ?? '', $n['shape'] ?? '', $n['target'] ?? 0, $n['showDate'] ?? null],
         $notes
     )));
 }

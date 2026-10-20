@@ -6,6 +6,7 @@ import { toggleSnap } from './snap.js';
 import { openAbout } from './about.js';
 import { createArrow } from './arrow.js';
 import { createClock } from './clock.js';
+import { createCountdown } from './countdown.js';
 import { createWordart } from './wordart.js';
 
 // Twee uitklapmenu's (hoofdmenu en Nieuw); openen van de ene sluit de andere
@@ -44,6 +45,7 @@ $('newNote').addEventListener('click', () => { toggleMenu(false); openDialog(nul
 $('newImage').addEventListener('click', () => { toggleMenu(false); $('imageInput').click(); });
 $('newArrow').addEventListener('click', () => { toggleMenu(false); createArrow(); });
 $('newClock').addEventListener('click', () => { toggleMenu(false); createClock(); });
+$('newCountdown').addEventListener('click', () => { toggleMenu(false); createCountdown(); });
 $('newWordart').addEventListener('click', () => { toggleMenu(false); createWordart(); });
 $('resetZoom').addEventListener('click', () => { toggleMain(false); setZoom(1); });
 $('snapToggle').addEventListener('click', () => { toggleMain(false); toggleSnap(); });

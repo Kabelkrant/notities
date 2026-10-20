@@ -13,9 +13,9 @@ $zoom = isset($_COOKIE['zoom']) && is_numeric($_COOKIE['zoom']) ? max(0.25, min(
 $snap = ($_COOKIE['snap'] ?? '') === '1';
 // Drempels voor 'afbeelding te groot' (vraag om te verkleinen), uit .env; ongeldige waarden vallen terug op de standaard
 $envInt = fn(string $k, int $default, int $min, int $max): int => max($min, min($max, (int)(Auth::env($k) ?: $default)));
-$allow = [ // welke soorten items er nog toegevoegd mogen worden (.env: ALLOW_NOTES, ALLOW_PICTURES, ALLOW_ARROW, ALLOW_CLOCK, ALLOW_WORDART)
+$allow = [ // welke soorten items er nog toegevoegd mogen worden (.env: ALLOW_NOTES, ALLOW_PICTURES, ALLOW_ARROW, ALLOW_CLOCK, ALLOW_COUNTDOWN, ALLOW_WORDART)
     'notes' => feature_enabled('NOTES'), 'pictures' => feature_enabled('PICTURES'),
-    'arrow' => feature_enabled('ARROW'), 'clock' => feature_enabled('CLOCK'), 'wordart' => feature_enabled('WORDART'),
+    'arrow' => feature_enabled('ARROW'), 'clock' => feature_enabled('CLOCK'), 'countdown' => feature_enabled('COUNTDOWN'), 'wordart' => feature_enabled('WORDART'),
 ];
 $boot = [
     'allow' => $allow,
@@ -61,9 +61,10 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
       <div id="newMenu" class="menu" data-align="center" role="menu" hidden>
         <button type="button" role="menuitem" id="newNote"<?= $allow['notes'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🗒️</span> Notitie</button>
         <button type="button" role="menuitem" id="newImage"<?= $allow['pictures'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🖼️</span> Afbeelding</button>
+        <button type="button" role="menuitem" id="newWordart"<?= $allow['wordart'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🌈</span> WordArt</button>
         <button type="button" role="menuitem" id="newArrow"<?= $allow['arrow'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">➡️</span> Pijl</button>
         <button type="button" role="menuitem" id="newClock"<?= $allow['clock'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🕐</span> Klok</button>
-        <button type="button" role="menuitem" id="newWordart"<?= $allow['wordart'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🔤</span> WordArt</button>
+        <button type="button" role="menuitem" id="newCountdown"<?= $allow['countdown'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">⏳</span> Countdown</button>
       </div>
     </div>
     <div class="zoom-ctl" role="group" aria-label="Zoomen">
@@ -189,6 +190,29 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
       <p class="error" id="clockError" hidden></p>
       <menu>
         <button type="button" id="clockCancel">Annuleren</button>
+        <button type="submit" class="primary">Opslaan</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="countdownDialog" aria-labelledby="countdownTitle">
+    <form id="countdownForm" method="dialog">
+      <h2 id="countdownTitle">Countdown</h2>
+      <div class="clock-preview"><div class="countdown-art" id="countdownPreview"></div></div>
+      <div class="field">
+        <span class="field-label">Ontwerp</span>
+        <div class="countdown-styles" id="countdownStyles"></div>
+      </div>
+      <label>Label
+        <input type="text" name="label" maxlength="40" placeholder="Bijvoorbeeld Afspraak tandarts" autocomplete="off">
+      </label>
+      <label>Datum en tijd
+        <input type="datetime-local" name="when" required>
+      </label>
+      <label class="inline-check"><input type="checkbox" name="showDate"> Streefdatum onderin tonen</label>
+      <p class="error" id="countdownError" hidden></p>
+      <menu>
+        <button type="button" id="countdownCancel">Annuleren</button>
         <button type="submit" class="primary">Opslaan</button>
       </menu>
     </form>

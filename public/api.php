@@ -229,6 +229,36 @@ try {
             if (isset($in['seconds'])) $ch['seconds'] = (bool)$in['seconds'];
             respond(['note' => note_to_array($found($store->update($id, $ch)))]);
 
+        case 'create_countdown':
+            require_feature('COUNTDOWN', 'countdowns');
+            check_capacity(false);
+            $n = $store->create([
+                'type' => 'countdown', 'x' => $coord('x'), 'y' => $coord('y'),
+                'w' => clamp_int($in['w'] ?? COUNTDOWN_DEFAULT_SIZE, MIN_COUNTDOWN_SIZE, MAX_COUNTDOWN_SIZE),
+                'style' => 'classic', 'label' => '', 'showDate' => true, 'target' => (intdiv(time(), 3600) + 25) * 3600, // standaard: morgen, op een heel uur
+            ]);
+            respond(['note' => note_to_array($n)], 201);
+
+        case 'countdown_update':
+            if (($found($store->find($id))['type'] ?? '') !== 'countdown') respond(['error' => 'Alleen countdowns zijn hiermee aan te passen'], 400);
+            $ch = [];
+            foreach (['x', 'y'] as $k) if (isset($in[$k])) $ch[$k] = clamp_int($in[$k], 0, 100000);
+            if (isset($in['w'])) $ch['w'] = clamp_int($in['w'], MIN_COUNTDOWN_SIZE, MAX_COUNTDOWN_SIZE);
+            if (isset($in['style'])) {
+                if (!in_array($in['style'], COUNTDOWN_STYLES, true)) respond(['error' => 'Onbekend ontwerp'], 422);
+                $ch['style'] = $in['style'];
+            }
+            if (isset($in['label'])) {
+                $ch['label'] = mb_substr(trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', (string)$in['label'])), 0, MAX_COUNTDOWN_LABEL);
+            }
+            if (isset($in['showDate'])) $ch['showDate'] = (bool)$in['showDate'];
+            if (isset($in['target'])) {
+                $t = (int)$in['target'];
+                if ($t < 1 || $t > time() + MAX_COUNTDOWN_AHEAD) respond(['error' => 'Ongeldige datum'], 422);
+                $ch['target'] = $t;
+            }
+            respond(['note' => note_to_array($found($store->update($id, $ch)))]);
+
         case 'create_wordart':
             require_feature('WORDART', 'WordArt');
             check_capacity(false);

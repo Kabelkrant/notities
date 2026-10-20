@@ -3,9 +3,10 @@ import { board } from './ui.js';
 import { needsLightText } from './color.js';
 import { arrowSvg } from './arrowshape.js';
 import { clockMarkup, updateClock, timeIn } from './clockshape.js';
+import { countdownMarkup, updateCountdown, secondsLeft } from './countdownshape.js';
 import { wordartMarkup, wordartRatio } from './wordartshape.js';
 
-const sig = (n) => [n.type, n.title, n.body, n.color, n.file, n.x, n.y, n.w, n.h, n.rot, n.style, n.tz, n.label, n.seconds, n.text, n.shape, n.updated].join('\u0001');
+const sig = (n) => [n.type, n.title, n.body, n.color, n.file, n.x, n.y, n.w, n.h, n.rot, n.style, n.tz, n.label, n.seconds, n.text, n.shape, n.target, n.showDate, n.updated].join('\u0001');
 
 function buildItem(n) {
   const el = document.createElement(n.type === 'image' ? 'figure' : 'article');
@@ -19,6 +20,16 @@ function buildItem(n) {
       <span class="resize-handle" aria-hidden="true"></span>
       <div class="wordart-actions">
         <button type="button" class="edit-btn" title="Tekst, stijl en vorm" aria-label="Tekst, stijl en vorm">✏️</button>
+        <button type="button" class="delete-btn" title="Verwijderen" aria-label="Verwijderen">🗑️</button>
+      </div>`;
+  } else if (n.type === 'countdown') {
+    el.className = 'item countdown';
+    el.setAttribute('role', 'img');
+    el.innerHTML = `
+      <div class="countdown-art"></div>
+      <span class="resize-handle" aria-hidden="true"></span>
+      <div class="countdown-actions">
+        <button type="button" class="edit-btn" title="Ontwerp, label en datum" aria-label="Ontwerp, label en datum">✏️</button>
         <button type="button" class="delete-btn" title="Verwijderen" aria-label="Verwijderen">🗑️</button>
       </div>`;
   } else if (n.type === 'clock') {
@@ -76,6 +87,15 @@ export function paint(el, n) {
     el.setAttribute('aria-label', 'WordArt: ' + n.text);
     const art = el.querySelector('.wordart-art'), sig = [n.text, n.style, n.shape].join('\u0001');
     if (art._sig !== sig) { art._sig = sig; art.innerHTML = wordartMarkup(n); }
+    return;
+  }
+  if (n.type === 'countdown') {
+    el.style.width = n.w + 'px';
+    el.style.height = n.w + 'px';
+    const art = el.querySelector('.countdown-art'), sig = [n.style, n.label, n.showDate, n.target].join('\u0001');
+    if (art._sig !== sig) { art._sig = sig; art.innerHTML = countdownMarkup(n); art._c = {}; }
+    art._c = {}; // aria-label en klassen na elke wijziging opnieuw zetten
+    updateCountdown(art, n, secondsLeft(n));
     return;
   }
   if (n.type === 'clock') {

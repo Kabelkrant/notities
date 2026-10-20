@@ -136,7 +136,7 @@ bodyField.addEventListener('paste', (e) => {
 const EMOJI = [
   ['👍', 'duim omhoog'], ['✅', 'klaar'], ['❌', 'fout'], ['⚠️', 'waarschuwing'], ['🔥', 'vuur'], ['⭐', 'ster'],
   ['💡', 'idee'], ['📌', 'pin'], ['📅', 'kalender'], ['⏰', 'wekker'], ['⏳', 'zandloper'], ['🎯', 'doel'],
-  ['🚀', 'raket'], ['🐛', 'bug'], ['🌐', 'wereldbol'], ['🔒', 'slot'], ['🔧', 'moersleutel'], ['🎉', 'feest'],
+  ['🚀', 'raket'], ['🐛', 'bug'], ['🌐', 'wereldbol'], ['🔒', 'slot'], ['🍀', 'klavertje'], ['🎉', 'feest'],
   ['📞', 'telefoon'], ['✉️', 'envelop'], ['🏠', 'huis'], ['💰', 'geld'], ['🙏', 'dank'], ['👀', 'ogen'],
   ['❤️', 'hart'], ['😀', 'lachend gezicht'], ['😂', 'lachen om te huilen'], ['🤔', 'nadenkend gezicht'], ['🤢', 'misselijk gezicht'], ['🤯', 'hoofd explodeert'],
 ];
