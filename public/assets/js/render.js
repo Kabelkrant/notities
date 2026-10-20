@@ -3,14 +3,25 @@ import { board } from './ui.js';
 import { needsLightText } from './color.js';
 import { arrowSvg } from './arrowshape.js';
 import { clockMarkup, updateClock, timeIn } from './clockshape.js';
+import { wordartMarkup, wordartRatio } from './wordartshape.js';
 
-const sig = (n) => [n.type, n.title, n.body, n.color, n.file, n.x, n.y, n.w, n.h, n.rot, n.style, n.tz, n.label, n.seconds, n.updated].join('\u0001');
+const sig = (n) => [n.type, n.title, n.body, n.color, n.file, n.x, n.y, n.w, n.h, n.rot, n.style, n.tz, n.label, n.seconds, n.text, n.shape, n.updated].join('\u0001');
 
 function buildItem(n) {
   const el = document.createElement(n.type === 'image' ? 'figure' : 'article');
   el.tabIndex = 0;
   el.dataset.id = n.id;
-  if (n.type === 'clock') {
+  if (n.type === 'wordart') {
+    el.className = 'item wordart';
+    el.innerHTML = `
+      <div class="wordart-art"></div>
+      <span class="rotate-handle" aria-hidden="true" title="Roteren (Shift = stappen van 15°)"></span>
+      <span class="resize-handle" aria-hidden="true"></span>
+      <div class="wordart-actions">
+        <button type="button" class="edit-btn" title="Tekst, stijl en vorm" aria-label="Tekst, stijl en vorm">✏️</button>
+        <button type="button" class="delete-btn" title="Verwijderen" aria-label="Verwijderen">🗑️</button>
+      </div>`;
+  } else if (n.type === 'clock') {
     el.className = 'item clock';
     el.setAttribute('aria-label', 'Klok');
     el.setAttribute('role', 'img');
@@ -57,6 +68,16 @@ function buildItem(n) {
 export function paint(el, n) {
   el.style.left = n.x + 'px';
   el.style.top = n.y + 'px';
+  if (n.type === 'wordart') {
+    n.h = Math.max(1, Math.round(n.w * wordartRatio(n.text, n.shape))); // de hoogte volgt uit de breedte (verhouding van de tekening)
+    el.style.width = n.w + 'px';
+    el.style.height = n.h + 'px';
+    el.style.setProperty('--rot', n.rot || 0);
+    el.setAttribute('aria-label', 'WordArt: ' + n.text);
+    const art = el.querySelector('.wordart-art'), sig = [n.text, n.style, n.shape].join('\u0001');
+    if (art._sig !== sig) { art._sig = sig; art.innerHTML = wordartMarkup(n); }
+    return;
+  }
   if (n.type === 'clock') {
     el.style.width = n.w + 'px';
     el.style.height = n.w + 'px';

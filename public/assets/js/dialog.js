@@ -45,7 +45,7 @@ export function freeSpot(w = 262, h = 140, top = SPOT_GAP) {
   for (const n of items.values()) {
     const el = els.get(n.id);
     if (!el || el.hidden) continue; // verborgen (net verwijderd) telt niet mee
-    if (n.type === 'arrow') { // omhullende van de geroteerde pijl
+    if (n.type === 'arrow' || n.type === 'wordart') { // omhullende van het geroteerde item
       const a = (n.rot || 0) * Math.PI / 180, c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a));
       const bw = n.w * c + n.h * s, bh = n.w * s + n.h * c, cx = n.x + n.w / 2, cy = n.y + n.h / 2;
       rects.push([cx - bw / 2, cy - bh / 2, cx + bw / 2, cy + bh / 2]);

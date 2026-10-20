@@ -42,6 +42,13 @@ const CLOCK_DEFAULT_SIZE = 160;
 const MIN_CLOCK_SIZE = 80;
 const MAX_CLOCK_SIZE = 600;
 const MAX_CLOCK_LABEL = 40;
+const WORDART_STYLES = ['rainbow', 'chrome', 'gold', 'neon', 'fire', 'retro', 'comic'];
+const WORDART_SHAPES = ['straight', 'arch_up', 'arch_down', 'wave'];
+const WORDART_DEFAULT_TEXT = 'WordArt';
+const WORDART_DEFAULT_W = 260;
+const MIN_WORDART_WIDTH = 60;
+const MAX_WORDART_WIDTH = 3000;
+const MAX_WORDART_TEXT = 60;
 const IMAGE_FIT = 262; // beginformaat: past binnen IMAGE_FIT x IMAGE_FIT
 const IMAGE_TYPES = [
     'image/png' => 'png', 'image/jpeg' => 'jpg', 'image/gif' => 'gif',
@@ -117,6 +124,12 @@ function note_to_array(array $r): array {
     if ($base['type'] === 'image') {
         return $base + ['file' => $r['file'], 'w' => (int)$r['w'], 'h' => (int)$r['h']];
     }
+    if ($base['type'] === 'wordart') {
+        return $base + [
+            'w' => (int)$r['w'], 'rot' => (int)($r['rot'] ?? 0), 'text' => $r['text'] ?? WORDART_DEFAULT_TEXT,
+            'style' => $r['style'] ?? 'rainbow', 'shape' => $r['shape'] ?? 'straight',
+        ];
+    }
     if ($base['type'] === 'clock') {
         return $base + [
             'w' => (int)$r['w'], 'h' => (int)$r['w'], 'style' => $r['style'] ?? 'classic',
@@ -144,7 +157,7 @@ function all_notes(): array {
 
 function notes_version(array $notes): string {
     return md5(json_encode(array_map(
-        fn($n) => [$n['id'], $n['type'], $n['title'] ?? '', $n['body'] ?? '', $n['color'] ?? '', $n['file'] ?? '', $n['w'] ?? 0, $n['h'] ?? 0, $n['x'], $n['y'], $n['rot'] ?? 0, $n['style'] ?? '', $n['tz'] ?? '', $n['label'] ?? '', $n['seconds'] ?? null],
+        fn($n) => [$n['id'], $n['type'], $n['title'] ?? '', $n['body'] ?? '', $n['color'] ?? '', $n['file'] ?? '', $n['w'] ?? 0, $n['h'] ?? 0, $n['x'], $n['y'], $n['rot'] ?? 0, $n['style'] ?? '', $n['tz'] ?? '', $n['label'] ?? '', $n['seconds'] ?? null, $n['text'] ?? '', $n['shape'] ?? ''],
         $notes
     )));
 }

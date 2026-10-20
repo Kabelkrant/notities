@@ -78,6 +78,29 @@ button:focus-visible, .note:focus-visible { outline: 2px solid var(--accent); ou
 .arrow .arrow-actions { left: 50%; top: calc(100% + 14px); display: flex; gap: 6px; transform: translateX(-50%) rotate(calc(var(--rot, 0) * -1deg)); }
 .arrow .arrow-actions button { width: 28px; height: 28px; padding: 0; line-height: 1; border: none; border-radius: 50%; background: rgba(255,255,255,.95); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
 @media (pointer: coarse) { .arrow .rotate-handle, .arrow .resize-handle { width: 26px; height: 26px; margin-left: -13px; } .arrow .resize-handle { margin-left: 0; right: -13px; bottom: -13px; } }
+/* WordArt: gedraagt zich als een pijl (slepen, schalen, roteren); greepjes alleen bij focus */
+.wordart { position: absolute; margin: 0; cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; outline: none; transform: rotate(calc(var(--rot, 0) * 1deg)); }
+.wordart.dragging { cursor: grabbing; }
+.wordart .wordart-art { width: 100%; height: 100%; pointer-events: none; }
+.wordart .wordart-art svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.wordart:focus-within { outline: 1px dashed color-mix(in srgb, var(--text) 55%, transparent); outline-offset: 4px; }
+.wordart .rotate-handle, .wordart .resize-handle, .wordart .wordart-actions { visibility: hidden; position: absolute; }
+.wordart:focus-within .rotate-handle, .wordart:focus-within .resize-handle, .wordart:focus-within .wordart-actions { visibility: visible; }
+.wordart .rotate-handle { left: 50%; top: -34px; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: #fff; border: 2px solid var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.35); cursor: grab; touch-action: none; }
+.wordart .rotate-handle::after { content: ''; position: absolute; left: 50%; top: 100%; width: 2px; height: 14px; margin-left: -1px; background: var(--accent); }
+.wordart .resize-handle { right: -9px; bottom: -9px; width: 18px; height: 18px; border-radius: 4px; background: #fff; border: 2px solid var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.35); cursor: nwse-resize; touch-action: none; }
+.wordart .wordart-actions { left: 50%; top: calc(100% + 14px); display: flex; gap: 6px; transform: translateX(-50%) rotate(calc(var(--rot, 0) * -1deg)); }
+.wordart .wordart-actions button { width: 28px; height: 28px; padding: 0; line-height: 1; border: none; border-radius: 50%; background: rgba(255,255,255,.95); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+@media (pointer: coarse) { .wordart .rotate-handle, .wordart .resize-handle { width: 26px; height: 26px; margin-left: -13px; } .wordart .resize-handle { margin-left: 0; right: -13px; bottom: -13px; } }
+.wordart-art svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.wordart-preview { display: grid; place-items: center; min-height: 6.5rem; padding: .5rem; border-radius: 10px; background: var(--bg); border: 1px solid color-mix(in srgb, var(--text) 15%, transparent); }
+.wordart-preview svg { display: block; width: 100%; max-width: 320px; max-height: 8rem; }
+.wordart-styles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .4rem; }
+.wordart-shapes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .4rem; }
+.wordart-styles button, .wordart-shapes button { display: grid; place-items: center; padding: .3rem; height: 3.4rem; }
+.wordart-shapes button { height: 4.2rem; }
+.wordart-styles button svg, .wordart-shapes button svg { display: block; width: 100%; height: 100%; }
+.wordart-styles button[aria-pressed="true"], .wordart-shapes button[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 1px; }
 .arrow-preview { display: grid; place-items: center; height: 5rem; border-radius: 10px; background: var(--bg); border: 1px solid color-mix(in srgb, var(--text) 15%, transparent); }
 .arrow-preview svg { width: 200px; height: 52px; }
 .arrow-styles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .4rem; }

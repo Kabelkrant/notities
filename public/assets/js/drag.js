@@ -6,6 +6,7 @@ import { snapTo, showGrid } from './snap.js';
 import { paint } from './render.js';
 import { ARROW_MIN_W, ARROW_MIN_H, ARROW_MAX_H } from './arrowshape.js';
 import { CLOCK_MIN_SIZE, CLOCK_MAX_SIZE } from './clockshape.js';
+import { WORDART_MIN_W, WORDART_MAX_W, wordartRatio } from './wordartshape.js';
 
 // Slepen, schalen en roteren (Pointer Events)
 let drag = null, resize = null, rotate = null;
@@ -50,8 +51,17 @@ board.addEventListener('pointerdown', (e) => {
 function resizeArrow(e) {
   const { n, item } = resize, z = state.zoom, t = resize.rot * Math.PI / 180, cos = Math.cos(t), sin = Math.sin(t);
   const dx = (e.clientX - resize.sx) / z, dy = (e.clientY - resize.sy) / z;
-  const lx = dx * cos + dy * sin, ly = -dx * sin + dy * cos; // aanwijzerbeweging in de assen van de pijl
-  const nw = clamp(Math.round(resize.ow + lx), ARROW_MIN_W, MAX_SIZE), nh = clamp(Math.round(resize.oh + ly), ARROW_MIN_H, ARROW_MAX_H);
+  const lx = dx * cos + dy * sin, ly = -dx * sin + dy * cos; // aanwijzerbeweging in de assen van het item
+  let nw, nh;
+  if (n.type === 'wordart') { // verhouding blijft: de hoek wordt op de diagonaal geprojecteerd (standaard proportioneel schalen)
+    const ratio = wordartRatio(n.text, n.shape), ow = resize.ow, oh = resize.oh;
+    const s = ((ow + lx) * ow + (oh + ly) * oh) / (ow * ow + oh * oh);
+    nw = clamp(Math.round(ow * s), WORDART_MIN_W, WORDART_MAX_W);
+    nh = Math.max(1, Math.round(nw * ratio));
+  } else {
+    nw = clamp(Math.round(resize.ow + lx), ARROW_MIN_W, MAX_SIZE);
+    nh = clamp(Math.round(resize.oh + ly), ARROW_MIN_H, ARROW_MAX_H);
+  }
   const rotv = (a, b) => [a * cos - b * sin, a * sin + b * cos];
   const [pdx, pdy] = rotv(-resize.ow / 2, -resize.oh / 2);
   const px = resize.ox + resize.ow / 2 + pdx, py = resize.oy + resize.oh / 2 + pdy; // vaste hoek
@@ -72,7 +82,7 @@ board.addEventListener('pointermove', (e) => {
   }
   if (resize && e.pointerId === resize.id) {
     const { n, item } = resize;
-    if (n.type === 'arrow') return resizeArrow(e);
+    if (n.type === 'arrow' || n.type === 'wordart') return resizeArrow(e);
     if (n.type === 'clock') {
       const d = ((e.clientX - resize.sx) + (e.clientY - resize.sy)) / 2 / state.zoom; // vierkant: gemiddelde van de x- en y-beweging
       n.w = n.h = clamp(Math.round(resize.ow + d), CLOCK_MIN_SIZE, CLOCK_MAX_SIZE);
@@ -114,7 +124,9 @@ function endPointer(e) {
     resize = null; state.busy = false;
     const req = n.type === 'arrow'
       ? api({ action: 'arrow_update', id: n.id, x: n.x, y: n.y, w: n.w, h: n.h })
-      : n.type === 'clock'
+      : n.type === 'wordart'
+        ? api({ action: 'wordart_update', id: n.id, x: n.x, y: n.y, w: n.w })
+        : n.type === 'clock'
         ? api({ action: 'clock_update', id: n.id, w: n.w })
         : api({ action: 'resize', id: n.id, w: n.w, h: n.h });
     req.then(poll).catch((err) => reportError(new Error('Formaat opslaan mislukt: ' + err.message)));
@@ -142,7 +154,7 @@ export async function saveMove(n) {
 // Wijzigingen aan een pijl (rotatie, ...) opslaan
 export async function saveArrow(n, fields) {
   try {
-    await api({ action: 'arrow_update', id: n.id, ...fields });
+    await api({ action: n.type === 'wordart' ? 'wordart_update' : 'arrow_update', id: n.id, ...fields });
     poll();
   } catch (err) {
     reportError(new Error('Pijl opslaan mislukt: ' + err.message));

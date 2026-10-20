@@ -13,9 +13,9 @@ $zoom = isset($_COOKIE['zoom']) && is_numeric($_COOKIE['zoom']) ? max(0.25, min(
 $snap = ($_COOKIE['snap'] ?? '') === '1';
 // Drempels voor 'afbeelding te groot' (vraag om te verkleinen), uit .env; ongeldige waarden vallen terug op de standaard
 $envInt = fn(string $k, int $default, int $min, int $max): int => max($min, min($max, (int)(Auth::env($k) ?: $default)));
-$allow = [ // welke soorten items er nog toegevoegd mogen worden (.env: ALLOW_NOTES, ALLOW_PICTURES, ALLOW_ARROW, ALLOW_CLOCK)
+$allow = [ // welke soorten items er nog toegevoegd mogen worden (.env: ALLOW_NOTES, ALLOW_PICTURES, ALLOW_ARROW, ALLOW_CLOCK, ALLOW_WORDART)
     'notes' => feature_enabled('NOTES'), 'pictures' => feature_enabled('PICTURES'),
-    'arrow' => feature_enabled('ARROW'), 'clock' => feature_enabled('CLOCK'),
+    'arrow' => feature_enabled('ARROW'), 'clock' => feature_enabled('CLOCK'), 'wordart' => feature_enabled('WORDART'),
 ];
 $boot = [
     'allow' => $allow,
@@ -63,6 +63,7 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
         <button type="button" role="menuitem" id="newImage"<?= $allow['pictures'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🖼️</span> Afbeelding</button>
         <button type="button" role="menuitem" id="newArrow"<?= $allow['arrow'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">➡️</span> Pijl</button>
         <button type="button" role="menuitem" id="newClock"<?= $allow['clock'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🕐</span> Klok</button>
+        <button type="button" role="menuitem" id="newWordart"<?= $allow['wordart'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🔤</span> WordArt</button>
       </div>
     </div>
     <div class="zoom-ctl" role="group" aria-label="Zoomen">
@@ -143,6 +144,29 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
         <button type="button" id="updateBtn" class="primary about-btn" disabled>Updaten</button>
         <button type="button" id="aboutClose" class="about-btn">Sluiten</button>
       </div>
+    </form>
+  </dialog>
+
+  <dialog id="wordartDialog" aria-labelledby="wordartTitle">
+    <form id="wordartForm" method="dialog">
+      <h2 id="wordartTitle">WordArt</h2>
+      <div class="wordart-preview" id="wordartPreview" aria-hidden="true"></div>
+      <label>Tekst
+        <input type="text" name="text" maxlength="60" autocomplete="off" spellcheck="false" required>
+      </label>
+      <div class="field">
+        <span class="field-label">Stijl</span>
+        <div class="wordart-styles" id="wordartStyles"></div>
+      </div>
+      <div class="field">
+        <span class="field-label">Vorm</span>
+        <div class="wordart-shapes" id="wordartShapes"></div>
+      </div>
+      <p class="error" id="wordartError" hidden></p>
+      <menu>
+        <button type="button" id="wordartCancel">Annuleren</button>
+        <button type="submit" class="primary">Opslaan</button>
+      </menu>
     </form>
   </dialog>
 

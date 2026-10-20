@@ -229,6 +229,37 @@ try {
             if (isset($in['seconds'])) $ch['seconds'] = (bool)$in['seconds'];
             respond(['note' => note_to_array($found($store->update($id, $ch)))]);
 
+        case 'create_wordart':
+            require_feature('WORDART', 'WordArt');
+            check_capacity(false);
+            $n = $store->create([
+                'type' => 'wordart', 'x' => $coord('x'), 'y' => $coord('y'),
+                'w' => clamp_int($in['w'] ?? WORDART_DEFAULT_W, MIN_WORDART_WIDTH, MAX_WORDART_WIDTH),
+                'rot' => 0, 'text' => WORDART_DEFAULT_TEXT, 'style' => 'rainbow', 'shape' => 'straight',
+            ]);
+            respond(['note' => note_to_array($n)], 201);
+
+        case 'wordart_update':
+            if (($found($store->find($id))['type'] ?? '') !== 'wordart') respond(['error' => 'Alleen WordArt is hiermee aan te passen'], 400);
+            $ch = [];
+            foreach (['x', 'y'] as $k) if (isset($in[$k])) $ch[$k] = clamp_int($in[$k], 0, 100000);
+            if (isset($in['w'])) $ch['w'] = clamp_int($in['w'], MIN_WORDART_WIDTH, MAX_WORDART_WIDTH);
+            if (isset($in['rot'])) $ch['rot'] = (((int)round((float)$in['rot'])) % 360 + 360) % 360;
+            if (isset($in['text'])) {
+                $text = mb_substr(trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', (string)$in['text'])), 0, MAX_WORDART_TEXT);
+                if ($text === '') respond(['error' => 'Vul een tekst in'], 422);
+                $ch['text'] = $text;
+            }
+            if (isset($in['style'])) {
+                if (!in_array($in['style'], WORDART_STYLES, true)) respond(['error' => 'Onbekende WordArt-stijl'], 422);
+                $ch['style'] = $in['style'];
+            }
+            if (isset($in['shape'])) {
+                if (!in_array($in['shape'], WORDART_SHAPES, true)) respond(['error' => 'Onbekende WordArt-vorm'], 422);
+                $ch['shape'] = $in['shape'];
+            }
+            respond(['note' => note_to_array($found($store->update($id, $ch)))]);
+
         case 'update':
             [$t, $b, $c] = $fields();
             if (($found($store->find($id))['type'] ?? 'note') !== 'note') respond(['error' => 'Alleen notities zijn te bewerken'], 400);
