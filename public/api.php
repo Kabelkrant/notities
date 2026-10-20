@@ -90,8 +90,6 @@ function handle_upload(): never {
 const ITEM_FEATURES = [
     'arrow' => ['ARROW', 'pijlen'], 'clock' => ['CLOCK', 'klokken'], 'wordart' => ['WORDART', 'WordArt'], 'countdown' => ['COUNTDOWN', 'countdowns'],
 ];
-/** Velden die bij het verplaatsen of schalen horen; die zijn bij een vergrendeld item niet te wijzigen. */
-const GEOMETRY_FIELDS = ['x', 'y', 'w', 'h', 'rot'];
 
 /** Beginwaarden (zonder x/y) van een nieuw item van dit type; w en h mogen door de client worden meegegeven. */
 function item_defaults(string $type, array $in): array {
@@ -118,11 +116,11 @@ function item_defaults(string $type, array $in): array {
     };
 }
 
-/** Velden die item_update bij dit type mag aanpassen: veld => [soort, parameters...]. Alle typen kunnen verplaatst en vergrendeld worden. */
+/** Velden die item_update bij dit type mag aanpassen: veld => [soort, parameters...]. Alle typen kunnen verplaatst worden. */
 function item_schema(string $type): array {
     $int = fn(int $min, int $max) => ['int', $min, $max];
     $text = fn(int $max) => ['text', $max];
-    return ['x' => $int(0, 100000), 'y' => $int(0, 100000), 'locked' => ['bool']] + match ($type) {
+    return ['x' => $int(0, 100000), 'y' => $int(0, 100000)] + match ($type) {
         'image' => ['w' => $int(MIN_IMAGE_SIZE, MAX_IMAGE_SIZE), 'h' => $int(MIN_IMAGE_SIZE, MAX_IMAGE_SIZE)],
         'arrow' => [
             'w' => $int(MIN_ARROW_LENGTH, MAX_IMAGE_SIZE), 'h' => $int(MIN_ARROW_THICKNESS, MAX_ARROW_THICKNESS), 'rot' => ['rot'],
@@ -173,11 +171,6 @@ function item_changes(array $cur, array $in): array {
                 return $t;
             })(),
         };
-    }
-    // een vergrendeld item laat zich niet verplaatsen of schalen (ontgrendelen kan in hetzelfde verzoek)
-    $locked = array_key_exists('locked', $ch) ? $ch['locked'] : !empty($cur['locked']);
-    if ($locked && array_intersect(GEOMETRY_FIELDS, array_keys($ch))) {
-        respond(['error' => 'Dit item is vergrendeld'], 409);
     }
     return $ch;
 }
@@ -295,7 +288,6 @@ try {
             respond(['note' => note_to_array($found($n))]);
 
         case 'move':
-            if (!empty($found($store->find($id))['locked'])) respond(['error' => 'Dit item is vergrendeld'], 409);
             $found($store->update($id, ['x' => $coord('x'), 'y' => $coord('y')]));
             respond(['ok' => true]);
 
@@ -311,7 +303,6 @@ try {
             respond(['ok' => true, 'version' => $v]);
 
         case 'delete':
-            if (!empty($found($store->find($id))['locked'])) respond(['error' => 'Dit item is vergrendeld; ontgrendel het eerst'], 409);
             $removed = $store->delete($id);
             if (($removed['type'] ?? 'note') === 'image' && preg_match('/^[a-f0-9]{32}\.\w+$/', $removed['file'] ?? '')) {
                 @unlink(IMAGE_DIR . '/' . $removed['file']);

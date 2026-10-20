@@ -15,7 +15,6 @@ Een bord met notities, afbeeldingen, pijlen, klokken en WordArt die je vrij kunt
 - Gelijktijdig bewerken: wie een notitie opslaat die intussen door iemand anders is gewijzigd, krijgt een waarschuwing en kan bewust overschrijven
 - Over-dialoog met versie-informatie en bijwerken vanaf GitHub (zie Bijwerken)
 - Beveiligd met een wachtwoord (zie Inloggen)
-- Vergrendelen: met het 🔓-knopje (verschijnt zodra je een item selecteert) laat een item zich niet meer verplaatsen, schalen, roteren of verwijderen; bewerken kan nog. Ook de server weigert dat. Klik op 🔒 om te ontgrendelen
 - Verwijderen met ongedaan maken (6 seconden)
 - Live-sync tussen apparaten via polling (elke 4 seconden)
 

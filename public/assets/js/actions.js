@@ -2,18 +2,17 @@ import { UNDO_MS, GRID, items, els, pendingDelete, state } from './state.js';
 import { snapTo, showGrid } from './snap.js';
 import { board, reportError, showToast, hideToast } from './ui.js';
 import { api } from './api.js';
-import { paint, remove, upsert } from './render.js';
+import { paint, remove } from './render.js';
 import { poll } from './sync.js';
 import { saveMove, saveItem } from './drag.js';
 import { TYPES, typeLabel } from './types.js';
 
-// Bewerken / vergrendelen / verwijderen / toetsenbord
+// Bewerken / verwijderen / toetsenbord
 board.addEventListener('click', (e) => {
   const item = e.target.closest('.item'); if (!item) return;
   const id = Number(item.dataset.id), n = items.get(id);
   if (e.target.closest('.edit-btn')) TYPES[n.type].edit(n);
-  if (e.target.closest('.lock-btn')) toggleLock(n);
-  if (e.target.closest('.delete-btn') && !n.locked) softDelete(id);
+  if (e.target.closest('.delete-btn')) softDelete(id);
 });
 board.addEventListener('dblclick', (e) => {
   const item = e.target.closest('.item'); if (!item) return;
@@ -26,7 +25,6 @@ board.addEventListener('keydown', (e) => {
   if (!item || e.target !== item) return;
   const id = Number(item.dataset.id), n = items.get(id), def = TYPES[n.type];
   if (e.key === 'Enter') def.edit?.(n);
-  else if (n.locked) return; // vergrendeld: niet verplaatsen, roteren of verwijderen
   else if (def.rotatable && e.key.toLowerCase() === 'r' && !e.ctrlKey && !e.metaKey) { // R = 15° rechtsom, Shift+R = linksom
     n.rot = (((n.rot || 0) + (e.shiftKey ? -15 : 15)) % 360 + 360) % 360;
     paint(item, n);
@@ -47,17 +45,6 @@ board.addEventListener('keydown', (e) => {
     n._saveTimer = setTimeout(() => saveMove(n), 400);
   }
 });
-
-// Vergrendelen: het item laat zich niet meer verplaatsen, schalen, roteren of verwijderen (bewerken kan nog)
-async function toggleLock(n) {
-  try {
-    const { note } = await api({ action: 'item_update', id: n.id, locked: !n.locked });
-    upsert(note);
-    poll();
-  } catch (err) {
-    reportError(err);
-  }
-}
 
 function softDelete(id) {
   const n = items.get(id); if (!n) return;

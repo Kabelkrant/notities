@@ -245,11 +245,3 @@ input[type=color] { padding: 0; height: 2.2rem; width: 100%; }
 .countdown-styles button { display: grid; place-items: center; padding: .3rem; }
 .countdown-styles .countdown-art { width: 100%; max-width: 3.6rem; height: auto; aspect-ratio: 1; box-shadow: none; }
 .countdown-styles button[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 1px; }
-
-/* Vergrendelen: een vergrendeld item laat zich niet verplaatsen, schalen, roteren of verwijderen */
-.lock-btn { cursor: pointer; }
-.item.locked, .item.locked .note-head { cursor: default; }
-.item.locked .resize-handle, .item.locked .rotate-handle, .item.locked .delete-btn { display: none; }
-.image .lock-btn { visibility: hidden; position: absolute; top: 6px; right: 40px; width: 28px; height: 28px; padding: 0; line-height: 1; border: none; border-radius: 50%; background: rgba(255,255,255,.92); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
-.image:focus-within .lock-btn { visibility: visible; }
-.image.locked .lock-btn { right: 6px; }

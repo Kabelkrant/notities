@@ -6,7 +6,7 @@ import { snapTo, showGrid } from './snap.js';
 import { paint } from './render.js';
 import { TYPES } from './types.js';
 
-// Slepen, schalen en roteren (Pointer Events); vergrendelde items doen niet mee
+// Slepen, schalen en roteren (Pointer Events)
 let drag = null, resize = null, rotate = null;
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
@@ -14,7 +14,6 @@ board.addEventListener('pointerdown', (e) => {
   const item = e.target.closest('.item');
   if (!item || e.button > 0) return;
   const n = items.get(Number(item.dataset.id));
-  if (n.locked) return;
 
   const rot = e.target.closest('.rotate-handle');
   if (rot) {
@@ -142,7 +141,7 @@ export async function saveMove(n) {
   }
 }
 
-// Wijzigingen aan een item (rotatie, formaat, vergrendeling, ...) opslaan
+// Wijzigingen aan een item (rotatie, formaat, ...) opslaan
 export async function saveItem(n, fields, failure = 'Opslaan mislukt') {
   try {
     await api({ action: 'item_update', id: n.id, ...fields });
