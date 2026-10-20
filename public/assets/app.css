@@ -29,6 +29,7 @@ body { margin: 0; font-family: sans-serif; background: var(--bg); color: var(--t
 .menu[hidden] { display: none; }
 /* Gecentreerd onder de knop; --shift (door menu.js gezet) houdt het menu binnen beeld */
 .menu[data-align="center"] { left: 50%; right: auto; transform: translateX(calc(-50% + var(--shift, 0px))); }
+.menu button[hidden] { display: none; }
 .menu hr { width: 100%; margin: .25rem 0; border: 0; border-top: 1px solid color-mix(in srgb, var(--text) 20%, transparent); }
 /* Vinkvakje: altijd zichtbaar als blokje, gevuld met een vinkje als de optie aan staat */
 .menu .check { display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 1.1em; height: 1.1em; border: 1.5px solid color-mix(in srgb, var(--text) 55%, transparent); border-radius: 4px; font-size: .8em; line-height: 1; color: transparent; }
@@ -62,6 +63,52 @@ button:focus-visible, .note:focus-visible { outline: 2px solid var(--accent); ou
   background: linear-gradient(135deg, transparent 0 55%, #444 55% 63%, transparent 63% 72%, #444 72% 80%, transparent 80% 89%, #444 89% 97%, transparent 97%), rgba(255,255,255,.75);
   box-shadow: 0 1px 3px rgba(0,0,0,.35); }
 @media (pointer: coarse) { .image .resize-handle { width: 26px; height: 26px; } }
+
+/* Pijlen: los zwevend, roteerbaar; greepjes (roteren, schalen, acties) alleen bij focus. Acties draaien tegen de pijl in, zodat ze rechtop blijven. */
+.arrow { position: absolute; margin: 0; cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; outline: none; transform: rotate(calc(var(--rot, 0) * 1deg)); }
+.arrow.dragging { cursor: grabbing; }
+.arrow .arrow-art { width: 100%; height: 100%; pointer-events: none; }
+.arrow .arrow-art svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.arrow:focus-within { outline: 1px dashed color-mix(in srgb, var(--text) 55%, transparent); outline-offset: 4px; }
+.arrow .rotate-handle, .arrow .resize-handle, .arrow .arrow-actions { visibility: hidden; position: absolute; }
+.arrow:focus-within .rotate-handle, .arrow:focus-within .resize-handle, .arrow:focus-within .arrow-actions { visibility: visible; }
+.arrow .rotate-handle { left: 50%; top: -34px; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: #fff; border: 2px solid var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.35); cursor: grab; touch-action: none; }
+.arrow .rotate-handle::after { content: ''; position: absolute; left: 50%; top: 100%; width: 2px; height: 14px; margin-left: -1px; background: var(--accent); }
+.arrow .resize-handle { right: -9px; bottom: -9px; width: 18px; height: 18px; border-radius: 4px; background: #fff; border: 2px solid var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.35); cursor: nwse-resize; touch-action: none; }
+.arrow .arrow-actions { left: 50%; top: calc(100% + 14px); display: flex; gap: 6px; transform: translateX(-50%) rotate(calc(var(--rot, 0) * -1deg)); }
+.arrow .arrow-actions button { width: 28px; height: 28px; padding: 0; line-height: 1; border: none; border-radius: 50%; background: rgba(255,255,255,.95); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+@media (pointer: coarse) { .arrow .rotate-handle, .arrow .resize-handle { width: 26px; height: 26px; margin-left: -13px; } .arrow .resize-handle { margin-left: 0; right: -13px; bottom: -13px; } }
+.arrow-preview { display: grid; place-items: center; height: 5rem; border-radius: 10px; background: var(--bg); border: 1px solid color-mix(in srgb, var(--text) 15%, transparent); }
+.arrow-preview svg { width: 200px; height: 52px; }
+.arrow-styles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .4rem; }
+.arrow-styles button { height: 2.4rem; padding: .25rem; display: grid; place-items: center; color: var(--text); }
+.arrow-styles button svg { width: 100%; max-width: 56px; height: 22px; }
+.arrow-styles button[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Klokken: vierkant item met een ronde (of afgeronde, digitale) klok; wijzerplaat en wijzers zijn aparte SVG's */
+.clock { position: absolute; margin: 0; cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; outline: none; }
+.clock.dragging { cursor: grabbing; }
+.clock-art { position: relative; width: 100%; height: 100%; pointer-events: none; }
+.clock-art svg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.clock .clock-art { border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,.3); }
+.clock[data-style="digital"] .clock-art { border-radius: 15%; box-shadow: 0 4px 10px rgba(0,0,0,.35); }
+.clock-hands .hand { transform-box: view-box; transform-origin: 50% 50%; }
+.clock:focus-within { outline: 1px dashed color-mix(in srgb, var(--text) 55%, transparent); outline-offset: 5px; border-radius: 50%; }
+.clock[data-style="digital"]:focus-within { border-radius: 15%; }
+.clock .resize-handle, .clock .clock-actions { visibility: hidden; position: absolute; }
+.clock:focus-within .resize-handle, .clock:focus-within .clock-actions { visibility: visible; }
+.clock .resize-handle { right: -6px; bottom: -6px; width: 18px; height: 18px; border-radius: 4px; background: #fff; border: 2px solid var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.35); cursor: nwse-resize; touch-action: none; }
+.clock .clock-actions { left: 50%; top: calc(100% + 12px); display: flex; gap: 6px; transform: translateX(-50%); }
+.clock .clock-actions button { width: 28px; height: 28px; padding: 0; line-height: 1; border: none; border-radius: 50%; background: rgba(255,255,255,.95); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+@media (pointer: coarse) { .clock .resize-handle { width: 26px; height: 26px; } }
+.clock-preview { display: grid; place-items: center; padding: .25rem 0; }
+.clock-preview .clock-art { width: 140px; height: 140px; flex: none; }
+.clock-styles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .4rem; }
+.clock-styles button { display: grid; place-items: center; padding: .3rem; }
+.clock-styles .clock-art { width: 100%; max-width: 3rem; height: auto; aspect-ratio: 1; box-shadow: none; }
+.clock-styles button[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 1px; }
+label.inline-check { flex-direction: row; align-items: center; gap: .5rem; color: var(--text); }
+label.inline-check input { width: auto; padding: 0; }
 
 /* Notities houden hun gekozen kleur met donkere tekst; in de donkere modus iets gedimd */
 .note { position: absolute; width: 262px; min-height: 132px; padding: 1rem; border-radius: 10px; box-shadow: var(--shadow); color: #1d1f27; filter: var(--note-filter); isolation: isolate; /* eigen stapelcontext: knoppen blijven binnen hun notitie */ transition: box-shadow .15s; }

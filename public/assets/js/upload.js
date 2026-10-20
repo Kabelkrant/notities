@@ -1,4 +1,4 @@
-import { els, csrf, IMAGE_MAX_DIM, IMAGE_MAX_BYTES } from './state.js';
+import { els, csrf, IMAGE_MAX_DIM, IMAGE_MAX_BYTES, ALLOW } from './state.js';
 import { $, board, setStatus, reportError } from './ui.js';
 import { upsert } from './render.js';
 import { freeSpot } from './dialog.js';
@@ -115,7 +115,7 @@ $('imageInput').addEventListener('change', (e) => {
 // Ctrl+V met een afbeelding op het klembord (bijv. een schermafbeelding) uploadt die als nieuw item.
 // Tijdens een dialoog (notitie bewerken, Over) wordt er niets onderschept.
 document.addEventListener('paste', async (e) => {
-  if (document.querySelector('dialog[open]')) return;
+  if (!ALLOW.pictures || document.querySelector('dialog[open]')) return; // uitgeschakeld (ALLOW_PICTURES=0): gewoon laten plakken
   const files = [...(e.clipboardData?.files || [])].filter((f) => IMAGE_TYPES.includes(f.type));
   if (!files.length) return;
   e.preventDefault();

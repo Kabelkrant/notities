@@ -5,6 +5,8 @@ Een bord met notities en afbeeldingen die je vrij kunt verslepen. Geen database:
 ## Wat het kan
 - Notities met titel, kleur en Markdown
 - Afbeeldingen (PNG, JPEG, GIF, WebP, AVIF; max 15 MB), los zwevend met behoud van transparantie, te schalen via de greep rechtsonder
+- Pijlen (menu + → Pijl): vrij te slepen, te schalen via de greep rechtsonder en in elke richting te roteren via het greepje boven de pijl (Shift = stappen van 15°; met de toets R draai je 15° rechtsom, Shift+R linksom). Vijf ontwerpen (blokpijl, omlijnd, lijn, gestreept, dubbel) en acht kleuren, in te stellen via ✏️ of dubbelklikken
+- Klokken (menu + → Klok): vier analoge stijlen (zilver, rood, neon, zwarte rand) en een rode digitale 7-segmentklok, met tijdzone, eigen label en optionele secondewijzer. De klok toont de tijd van het apparaat waarop je kijkt, omgerekend naar de gekozen tijdzone
 - Slepen, ook met toetsenbord (pijltjes) en touch
 - Zoomen (30–200%) met de knoppen in de werkbalk; het niveau wordt in een cookie onthouden
 - Snap to grid (menu ☰): notities verplaatsen in stappen van 20 px, met een raster dat alleen tijdens het verplaatsen zichtbaar is; ook onthouden in een cookie
@@ -53,6 +55,9 @@ Alle gegevens staan in `data/` (`notes.json` en `images/`). Neem die map mee, pl
 ## Inloggen
 De hele app zit achter één wachtwoord (geen gebruikersnaam). Het wachtwoord staat leesbaar als `APP_PASSWORD` in `.env` (niet in git, rechten 600). De naam in het inlogscherm en op het tabblad stel je in met `APP_NAME` in dezelfde file. Na inloggen onthoudt de browser dit 30 dagen via een ondertekende cookie (`kn_auth`); de sleutel is afgeleid van het wachtwoord, dus een nieuw wachtwoord in `.env` logt iedereen uit. Uitloggen kan via het menu. Notities, afbeeldingen en de API geven zonder login `401`. Foute pogingen worden vertraagd en beperkt tot 6 per minuut per IP.
 Gebruik HTTPS, anders reist het wachtwoord leesbaar over het netwerk.
+
+## Onderdelen aan- en uitzetten
+Met `ALLOW_NOTES`, `ALLOW_PICTURES`, `ALLOW_ARROW` en `ALLOW_CLOCK` in `.env` bepaal je welke soorten items er nog **toegevoegd** mogen worden (`1`/`0`, ook `true`/`false`, `yes`/`no` en `on`/`off`). **Ontbreekt een regel, dan staat het onderdeel uit** (ook bij een onbegrijpelijke waarde); alleen `ALLOW_NOTES` staat dan juist aan. Bij een bestaande installatie moet je de regels dus toevoegen; in `.env.example` staan alleen notities en afbeeldingen aan en pijlen en klokken uit. Bij `0` verdwijnt de keuze uit het +-menu (en bij `ALLOW_PICTURES=0` werkt plakken van een afbeelding niet meer) en weigert de server het aanmaken. Items die al op het bord staan blijven gewoon zichtbaar en kun je nog verplaatsen, bewerken en verwijderen. Staat alles uit, dan verdwijnt de +-knop.
 
 ## Bijwerken
 Menu ☰ → Over toont de huidige versie (commit) en de nieuwste op GitHub (`Kabelkrant/notities`, branch `main`; de controle wordt 10 minuten gecachet). Als er een update is, wordt **Updaten** actief; de knop haalt de zipball van exact die commit op en kopieert de bestanden over de installatie.

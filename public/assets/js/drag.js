@@ -3,18 +3,34 @@ import { board, reportError } from './ui.js';
 import { api } from './api.js';
 import { poll } from './sync.js';
 import { snapTo, showGrid } from './snap.js';
+import { paint } from './render.js';
+import { ARROW_MIN_W, ARROW_MIN_H, ARROW_MAX_H } from './arrowshape.js';
+import { CLOCK_MIN_SIZE, CLOCK_MAX_SIZE } from './clockshape.js';
 
-// Slepen en schalen (Pointer Events)
-let drag = null, resize = null;
+// Slepen, schalen en roteren (Pointer Events)
+let drag = null, resize = null, rotate = null;
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 board.addEventListener('pointerdown', (e) => {
   const item = e.target.closest('.item');
   if (!item || e.button > 0) return;
 
+  const rot = e.target.closest('.rotate-handle');
+  if (rot) {
+    const n = items.get(Number(item.dataset.id)), r = item.getBoundingClientRect();
+    // de omhullende van een geroteerd element heeft hetzelfde middelpunt als het element zelf
+    rotate = { item, n, cx: r.left + r.width / 2, cy: r.top + r.height / 2, id: e.pointerId };
+    state.busy = true;
+    item.focus({ preventScroll: true });
+    rot.setPointerCapture(e.pointerId);
+    e.preventDefault();
+    return;
+  }
+
   const handle = e.target.closest('.resize-handle');
   if (handle) {
     const n = items.get(Number(item.dataset.id));
-    resize = { item, n, sx: e.clientX, sy: e.clientY, ow: n.w, oh: n.h, id: e.pointerId };
+    resize = { item, n, sx: e.clientX, sy: e.clientY, ow: n.w, oh: n.h, ox: n.x, oy: n.y, rot: n.rot || 0, id: e.pointerId };
     state.busy = true;
     item.focus({ preventScroll: true });
     handle.setPointerCapture(e.pointerId);
@@ -30,9 +46,38 @@ board.addEventListener('pointerdown', (e) => {
   item.setPointerCapture(e.pointerId);
 });
 
+// Schalen van een pijl in zijn eigen (geroteerde) assen; de linkerbovenhoek blijft op het scherm op dezelfde plek staan
+function resizeArrow(e) {
+  const { n, item } = resize, z = state.zoom, t = resize.rot * Math.PI / 180, cos = Math.cos(t), sin = Math.sin(t);
+  const dx = (e.clientX - resize.sx) / z, dy = (e.clientY - resize.sy) / z;
+  const lx = dx * cos + dy * sin, ly = -dx * sin + dy * cos; // aanwijzerbeweging in de assen van de pijl
+  const nw = clamp(Math.round(resize.ow + lx), ARROW_MIN_W, MAX_SIZE), nh = clamp(Math.round(resize.oh + ly), ARROW_MIN_H, ARROW_MAX_H);
+  const rotv = (a, b) => [a * cos - b * sin, a * sin + b * cos];
+  const [pdx, pdy] = rotv(-resize.ow / 2, -resize.oh / 2);
+  const px = resize.ox + resize.ow / 2 + pdx, py = resize.oy + resize.oh / 2 + pdy; // vaste hoek
+  const [ndx, ndy] = rotv(nw / 2, nh / 2);
+  n.w = nw; n.h = nh;
+  n.x = Math.max(0, Math.round(px + ndx - nw / 2));
+  n.y = Math.max(0, Math.round(py + ndy - nh / 2));
+  paint(item, n);
+}
+
 board.addEventListener('pointermove', (e) => {
+  if (rotate && e.pointerId === rotate.id) {
+    let deg = Math.atan2(e.clientY - rotate.cy, e.clientX - rotate.cx) * 180 / Math.PI + 90; // greepje zit boven het midden
+    if (e.shiftKey) deg = Math.round(deg / 15) * 15;
+    rotate.n.rot = ((Math.round(deg) % 360) + 360) % 360;
+    paint(rotate.item, rotate.n);
+    return;
+  }
   if (resize && e.pointerId === resize.id) {
     const { n, item } = resize;
+    if (n.type === 'arrow') return resizeArrow(e);
+    if (n.type === 'clock') {
+      const d = ((e.clientX - resize.sx) + (e.clientY - resize.sy)) / 2 / state.zoom; // vierkant: gemiddelde van de x- en y-beweging
+      n.w = n.h = clamp(Math.round(resize.ow + d), CLOCK_MIN_SIZE, CLOCK_MAX_SIZE);
+      return paint(item, n);
+    }
     n.w = Math.min(MAX_SIZE, Math.max(MIN_SIZE, Math.round(resize.ow + (e.clientX - resize.sx) / state.zoom)));
     n.h = Math.min(MAX_SIZE, Math.max(MIN_SIZE, Math.round(resize.oh + (e.clientY - resize.sy) / state.zoom)));
     item.style.width = n.w + 'px';
@@ -58,10 +103,21 @@ board.addEventListener('pointermove', (e) => {
 });
 
 function endPointer(e) {
+  if (rotate && e.pointerId === rotate.id) {
+    const n = rotate.n;
+    rotate = null; state.busy = false;
+    saveArrow(n, { rot: n.rot });
+    return;
+  }
   if (resize && e.pointerId === resize.id) {
     const n = resize.n;
     resize = null; state.busy = false;
-    api({ action: 'resize', id: n.id, w: n.w, h: n.h }).then(poll).catch((err) => reportError(new Error('Formaat opslaan mislukt: ' + err.message)));
+    const req = n.type === 'arrow'
+      ? api({ action: 'arrow_update', id: n.id, x: n.x, y: n.y, w: n.w, h: n.h })
+      : n.type === 'clock'
+        ? api({ action: 'clock_update', id: n.id, w: n.w })
+        : api({ action: 'resize', id: n.id, w: n.w, h: n.h });
+    req.then(poll).catch((err) => reportError(new Error('Formaat opslaan mislukt: ' + err.message)));
     return;
   }
   if (!drag || e.pointerId !== drag.id) return;
@@ -80,5 +136,15 @@ export async function saveMove(n) {
     poll();
   } catch (err) {
     reportError(new Error('Positie opslaan mislukt: ' + err.message));
+  }
+}
+
+// Wijzigingen aan een pijl (rotatie, ...) opslaan
+export async function saveArrow(n, fields) {
+  try {
+    await api({ action: 'arrow_update', id: n.id, ...fields });
+    poll();
+  } catch (err) {
+    reportError(new Error('Pijl opslaan mislukt: ' + err.message));
   }
 }

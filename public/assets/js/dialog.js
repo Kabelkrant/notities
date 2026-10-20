@@ -40,11 +40,17 @@ $('cancelBtn').addEventListener('click', () => dialog.close());
 
 // Eerste vrije plek (links naar rechts, boven naar beneden) waar een item van w x h past zonder een bestaand item te raken
 const SPOT_GAP = 20, SPOT_STEP = 20;
-export function freeSpot(w = 262, h = 140) {
+export function freeSpot(w = 262, h = 140, top = SPOT_GAP) {
   const rects = [];
   for (const n of items.values()) {
     const el = els.get(n.id);
     if (!el || el.hidden) continue; // verborgen (net verwijderd) telt niet mee
+    if (n.type === 'arrow') { // omhullende van de geroteerde pijl
+      const a = (n.rot || 0) * Math.PI / 180, c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a));
+      const bw = n.w * c + n.h * s, bh = n.w * s + n.h * c, cx = n.x + n.w / 2, cy = n.y + n.h / 2;
+      rects.push([cx - bw / 2, cy - bh / 2, cx + bw / 2, cy + bh / 2]);
+      continue;
+    }
     let iw = n.w, ih = n.h;
     if (n.type !== 'image') { // een notitie groeit mee met zijn tekst: meet de echte hoogte (in bordcoördinaten)
       const r = el.getBoundingClientRect();
@@ -55,7 +61,7 @@ export function freeSpot(w = 262, h = 140) {
   const free = (x, y) => !rects.some(([l, t, r, b]) => x < r + SPOT_GAP && x + w > l - SPOT_GAP && y < b + SPOT_GAP && y + h > t - SPOT_GAP);
   const maxX = Math.max(SPOT_GAP, Math.floor(board.clientWidth / state.zoom) - w - SPOT_GAP);
   const maxY = rects.reduce((m, r) => Math.max(m, r[3]), 0);
-  for (let y = SPOT_GAP; y <= maxY + SPOT_GAP; y += SPOT_STEP) {
+  for (let y = top; y <= maxY + SPOT_GAP; y += SPOT_STEP) {
     for (let x = SPOT_GAP; x <= maxX; x += SPOT_STEP) if (free(x, y)) return { x, y };
   }
   return { x: SPOT_GAP, y: Math.ceil((maxY + SPOT_GAP) / SPOT_STEP) * SPOT_STEP };

@@ -4,6 +4,8 @@ import { api } from './api.js';
 import { setZoom } from './zoom.js';
 import { toggleSnap } from './snap.js';
 import { openAbout } from './about.js';
+import { createArrow } from './arrow.js';
+import { createClock } from './clock.js';
 
 // Twee uitklapmenu's (hoofdmenu en Nieuw); openen van de ene sluit de andere
 const menus = [];
@@ -21,11 +23,11 @@ function setupMenu(btn, menu) {
     if (open) for (const m of menus) if (m.menu !== menu) m.toggle(false);
     menu.hidden = !open;
     btn.setAttribute('aria-expanded', String(open));
-    if (open) { keepInView(menu); menu.querySelector('button').focus(); }
+    if (open) { keepInView(menu); menu.querySelector('button:not([hidden])')?.focus(); }
   };
   btn.addEventListener('click', () => toggle());
   menu.addEventListener('keydown', (e) => {
-    const btns = [...menu.querySelectorAll('button')], i = btns.indexOf(document.activeElement);
+    const btns = [...menu.querySelectorAll('button:not([hidden])')], i = btns.indexOf(document.activeElement);
     if (e.key === 'Escape') { toggle(false); btn.focus(); }
     else if (e.key === 'ArrowDown') { e.preventDefault(); btns[(i + 1) % btns.length].focus(); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); btns[(i - 1 + btns.length) % btns.length].focus(); }
@@ -39,6 +41,8 @@ const toggleMenu = setupMenu($('newBtn'), $('newMenu'));
 document.addEventListener('pointerdown', (e) => { if (!e.target.closest('.split')) for (const m of menus) m.toggle(false); });
 $('newNote').addEventListener('click', () => { toggleMenu(false); openDialog(null); });
 $('newImage').addEventListener('click', () => { toggleMenu(false); $('imageInput').click(); });
+$('newArrow').addEventListener('click', () => { toggleMenu(false); createArrow(); });
+$('newClock').addEventListener('click', () => { toggleMenu(false); createClock(); });
 $('resetZoom').addEventListener('click', () => { toggleMain(false); setZoom(1); });
 $('snapToggle').addEventListener('click', () => { toggleMain(false); toggleSnap(); });
 $('logoutBtn').addEventListener('click', async () => { toggleMain(false); try { await api({ action: 'logout' }); } finally { location.reload(); } });

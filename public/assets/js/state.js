@@ -8,6 +8,8 @@ export const GRID = 20; // rasterstap in bordcoördinaten (snap to grid)
 // Drempels voor 'afbeelding te groot' (uit .env via de server)
 export const IMAGE_MAX_DIM = boot.imageMaxDim || 2000;
 export const IMAGE_MAX_BYTES = boot.imageMaxBytes || 2048 * 1024;
+// Welke soorten items er nog toegevoegd mogen worden (server: ALLOW_* in .env); bestaande items blijven werken
+export const ALLOW = boot.allow || {};
 export const COLORS = ['#FFF59D', '#FFCC80', '#F48FB1', '#CE93D8', '#90CAF9', '#80DEEA', '#A5D6A7', '#E0E0E0'];
 
 export const items = new Map();   // id -> data (notitie of afbeelding)

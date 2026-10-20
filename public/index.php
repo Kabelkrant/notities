@@ -13,7 +13,12 @@ $zoom = isset($_COOKIE['zoom']) && is_numeric($_COOKIE['zoom']) ? max(0.25, min(
 $snap = ($_COOKIE['snap'] ?? '') === '1';
 // Drempels voor 'afbeelding te groot' (vraag om te verkleinen), uit .env; ongeldige waarden vallen terug op de standaard
 $envInt = fn(string $k, int $default, int $min, int $max): int => max($min, min($max, (int)(Auth::env($k) ?: $default)));
+$allow = [ // welke soorten items er nog toegevoegd mogen worden (.env: ALLOW_NOTES, ALLOW_PICTURES, ALLOW_ARROW, ALLOW_CLOCK)
+    'notes' => feature_enabled('NOTES'), 'pictures' => feature_enabled('PICTURES'),
+    'arrow' => feature_enabled('ARROW'), 'clock' => feature_enabled('CLOCK'),
+];
 $boot = [
+    'allow' => $allow,
     'imageMaxDim' => $envInt('IMAGE_MAX_DIMENSION', 2000, 100, 5000),
     'imageMaxBytes' => $envInt('IMAGE_MAX_KB', 2048, 50, 15 * 1024) * 1024,
     'auth' => $authed,
@@ -49,13 +54,15 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
 <?php if ($authed): ?>
   <div class="toolbar">
     <span id="status" class="status" role="status" aria-live="polite"></span>
-    <div class="split">
+    <div class="split"<?= in_array(true, $allow, true) ? '' : ' hidden' ?>>
       <button id="newBtn" type="button" class="icon-btn add-btn" title="Nieuw" aria-label="Nieuw" aria-haspopup="menu" aria-expanded="false" aria-controls="newMenu">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
       </button>
       <div id="newMenu" class="menu" data-align="center" role="menu" hidden>
-        <button type="button" role="menuitem" id="newNote"><span class="ico" aria-hidden="true">🗒️</span> Notitie</button>
-        <button type="button" role="menuitem" id="newImage"><span class="ico" aria-hidden="true">🖼️</span> Afbeelding</button>
+        <button type="button" role="menuitem" id="newNote"<?= $allow['notes'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🗒️</span> Notitie</button>
+        <button type="button" role="menuitem" id="newImage"<?= $allow['pictures'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🖼️</span> Afbeelding</button>
+        <button type="button" role="menuitem" id="newArrow"<?= $allow['arrow'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">➡️</span> Pijl</button>
+        <button type="button" role="menuitem" id="newClock"<?= $allow['clock'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🕐</span> Klok</button>
       </div>
     </div>
     <div class="zoom-ctl" role="group" aria-label="Zoomen">
@@ -136,6 +143,49 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
         <button type="button" id="updateBtn" class="primary about-btn" disabled>Updaten</button>
         <button type="button" id="aboutClose" class="about-btn">Sluiten</button>
       </div>
+    </form>
+  </dialog>
+
+  <dialog id="clockDialog" aria-labelledby="clockTitle">
+    <form id="clockForm" method="dialog">
+      <h2 id="clockTitle">Klok</h2>
+      <div class="clock-preview"><div class="clock-art" id="clockPreview"></div></div>
+      <div class="field">
+        <span class="field-label">Stijl</span>
+        <div class="clock-styles" id="clockStyles"></div>
+      </div>
+      <label>Tijdzone
+        <input type="text" name="tz" list="clockTzList" placeholder="Leeg = lokale tijd van deze browser" autocomplete="off" spellcheck="false">
+      </label>
+      <datalist id="clockTzList"></datalist>
+      <label>Label
+        <input type="text" name="label" maxlength="40" placeholder="Bijvoorbeeld Studio" autocomplete="off">
+      </label>
+      <label class="inline-check"><input type="checkbox" name="seconds"> Secondewijzer tonen</label>
+      <p class="error" id="clockError" hidden></p>
+      <menu>
+        <button type="button" id="clockCancel">Annuleren</button>
+        <button type="submit" class="primary">Opslaan</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="arrowDialog" aria-labelledby="arrowTitle">
+    <form id="arrowForm" method="dialog">
+      <h2 id="arrowTitle">Pijl</h2>
+      <div class="arrow-preview" id="arrowPreview"></div>
+      <div class="field">
+        <span class="field-label">Ontwerp</span>
+        <div class="arrow-styles" id="arrowStyles"></div>
+      </div>
+      <label>Kleur
+        <span class="swatches" id="arrowSwatches"></span>
+        <input type="color" name="color" value="#e53935">
+      </label>
+      <menu>
+        <button type="button" id="arrowCancel">Annuleren</button>
+        <button type="submit" class="primary">Opslaan</button>
+      </menu>
     </form>
   </dialog>
 
