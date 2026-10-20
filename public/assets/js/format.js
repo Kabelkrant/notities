@@ -134,10 +134,10 @@ bodyField.addEventListener('paste', (e) => {
 
 /* ---------- Emoji-kiezer: raster van 6 kolommen x 5 rijen met veelgebruikte emoji ---------- */
 const EMOJI = [
-  ['👍', 'duim omhoog'], ['✅', 'klaar'], ['❌', 'fout'], ['⚠️', 'waarschuwing'], ['🔥', 'vuur'], ['⭐', 'ster'],
+  ['👍', 'duim omhoog'], ['👎', 'duim omlaag'], ['✅', 'klaar'], ['❌', 'fout'], ['⚠️', 'waarschuwing'], ['🔥', 'vuur'],
   ['💡', 'idee'], ['📌', 'pin'], ['📅', 'kalender'], ['⏰', 'wekker'], ['⏳', 'zandloper'], ['🎯', 'doel'],
   ['🚀', 'raket'], ['🐛', 'bug'], ['🌐', 'wereldbol'], ['🔒', 'slot'], ['🍀', 'klavertje'], ['🎉', 'feest'],
-  ['📞', 'telefoon'], ['✉️', 'envelop'], ['🏠', 'huis'], ['💰', 'geld'], ['🙏', 'dank'], ['👀', 'ogen'],
+  ['⭐', 'ster'], ['📞', 'telefoon'], ['🏠', 'huis'], ['💰', 'geld'], ['🙏', 'dank'], ['👀', 'ogen'],
   ['❤️', 'hart'], ['😀', 'lachend gezicht'], ['😂', 'lachen om te huilen'], ['🤔', 'nadenkend gezicht'], ['🤢', 'misselijk gezicht'], ['🤯', 'hoofd explodeert'],
 ];
 const EMOJI_COLS = 6;
