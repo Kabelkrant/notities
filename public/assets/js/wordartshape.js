@@ -1,7 +1,7 @@
 // Tekent WordArt als SVG: een tekst in een stijl (kleurverloop, rand, schaduw, 3D) op een rechte lijn, boog of golf.
 // Alle stijlen zijn statisch (geen filters): één keer tekenen, daarna alleen schalen en roteren via CSS.
 export const WORDART_STYLES = [
-  ['rainbow', 'Regenboog'], ['chrome', 'Chroom'], ['gold', 'Goud 3D'], ['neon', 'Neon'], ['fire', 'Vuur'], ['retro', 'Retro'], ['comic', 'Strip'],
+  ['rainbow', 'Regenboog'], ['chrome', 'Chroom'], ['gold', 'Goud 3D'], ['neon', 'Neon'], ['fire', 'Vuur'], ['retro', 'Retro'], ['comic', 'Strip'], ['jungle', 'Jungle'],
 ];
 export const WORDART_SHAPES = [['straight', 'Recht'], ['arch_up', 'Boog omhoog'], ['arch_down', 'Boog omlaag'], ['wave', 'Golf']];
 export const WORDART_MIN_W = 60, WORDART_MAX_W = 3000, WORDART_MIN_H = 20, WORDART_MAX_H = 3000, WORDART_MAX_TEXT = 60, WORDART_DEFAULT_W = 260;
@@ -87,6 +87,11 @@ function styleDef(style, id) {
         { fill: '#111', ...edge('#111', F * 0.1), transform: `translate(${r2(off * 1.3)} ${r2(off * 1.3)})` },
         { fill: '#ffe34d', ...edge('#111', F * 0.1) },
       ] };
+    case 'jungle': {
+      const ext = [];
+      for (let i = 3; i >= 1; i--) ext.push({ fill: i > 1 ? '#2e1f0c' : '#4a3317', transform: `translate(${r2(off * i * 0.8)} ${r2(off * i * 0.8)})` }); // boomstam-bruine diepte
+      return { font: IMPACT, defs: lin('g', [[0, '#e4f77a'], [0.35, '#7ccf4a'], [0.7, '#2b8a34'], [1, '#0e4d22']], true), layers: [...ext, { fill: `url(#${id('g')})`, ...edge('#173d0c', sw * 1.1) }] };
+    }
     default: // rainbow
       return { font: IMPACT, defs: lin('g', [[0, '#e53935'], [0.2, '#fb8c00'], [0.4, '#fdd835'], [0.6, '#43a047'], [0.8, '#1e88e5'], [1, '#8e24aa']], false), layers: [shadow, { fill: `url(#${id('g')})`, ...edge('#222', sw * 0.9) }] };
   }
