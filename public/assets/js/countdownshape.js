@@ -68,9 +68,12 @@ export function countdownMarkup(n) {
     : (k.tiles ? { label: 46, nog: 76, tileY: 87, tileH: 64, num: 137, unit: 166 } : { label: 50, nog: 80, num: 142, unit: 161 });
   L.nog -= 3; // 'nog' iets dichter onder het label
   for (const key of ['tileY', 'num', 'unit']) if (L[key] !== undefined) L[key] -= 4;
+  // 'Voorbij': duimpje en tekst, ruim boven de streefdatum
+  const D = withDate ? { thumb: 108, size: 46, text: 146, tsize: 22 } : { thumb: 118, size: 58, text: 160, tsize: 24 };
   if (!n.label) { // zonder label schuift de middenpartij omhoog, zodat het geheel in het midden blijft
     const up = withDate ? 8 : 18;
     for (const key of ['nog', 'tileY', 'num', 'unit']) if (L[key] !== undefined) L[key] -= up;
+    D.thumb -= up; D.text -= up;
   }
   const size = k.tiles && withDate ? 0.9 : 1;
   const label = n.label ? (() => {
@@ -90,8 +93,8 @@ export function countdownMarkup(n) {
     </g>
     ${date}
     <g class="cd-done" visibility="hidden">
-      <text x="100" y="124" text-anchor="middle" font-size="64">👍</text>
-      <text x="100" y="164" text-anchor="middle" font-family="${UI}" font-size="24" font-weight="800" fill="${k.num}">Voorbij</text>
+      <text x="100" y="${D.thumb}" text-anchor="middle" font-size="${D.size}">👍</text>
+      <text x="100" y="${D.text}" text-anchor="middle" font-family="${UI}" font-size="${D.tsize}" font-weight="800" fill="${k.num}">Voorbij</text>
     </g>
   </svg>`;
 }
