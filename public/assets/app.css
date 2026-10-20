@@ -239,7 +239,7 @@ input[type=color] { padding: 0; height: 2.2rem; width: 100%; }
 @keyframes countdown-done { from { box-shadow: 0 0 0 0 rgba(255,193,7,.9), 0 4px 10px rgba(0,0,0,.3); } to { box-shadow: 0 0 0 10px rgba(255,193,7,0), 0 4px 10px rgba(0,0,0,.3); } }
 @media (prefers-reduced-motion: reduce) { .countdown.done .countdown-art { animation: none; outline: 3px solid #ffc107; } }
 #countdownPreview { width: 150px; height: 150px; flex: none; }
-.countdown-styles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .4rem; }
+.countdown-styles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .4rem; }
 .countdown-styles button { display: grid; place-items: center; padding: .3rem; }
 .countdown-styles .countdown-art { width: 100%; max-width: 3.6rem; height: auto; aspect-ratio: 1; box-shadow: none; }
 .countdown-styles button[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 1px; }
