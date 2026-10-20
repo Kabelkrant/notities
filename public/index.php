@@ -206,10 +206,10 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
       <label>Label
         <input type="text" name="label" maxlength="40" placeholder="Bijvoorbeeld Afspraak tandarts" autocomplete="off">
       </label>
-      <label>Datum en tijd
+      <label>Einddatum en tijd
         <input type="datetime-local" name="when" required>
       </label>
-      <label class="inline-check"><input type="checkbox" name="showDate"> Streefdatum onderin tonen</label>
+      <label class="inline-check"><input type="checkbox" name="showDate"> Einddatum onderin weergeven</label>
       <p class="error" id="countdownError" hidden></p>
       <menu>
         <button type="button" id="countdownCancel">Annuleren</button>
