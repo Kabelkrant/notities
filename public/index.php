@@ -64,7 +64,7 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
         <button type="button" role="menuitem" id="newWordart" data-create="wordart"<?= $allow['wordart'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🌈</span> WordArt</button>
         <button type="button" role="menuitem" id="newArrow" data-create="arrow"<?= $allow['arrow'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">➡️</span> Pijl</button>
         <button type="button" role="menuitem" id="newClock" data-create="clock"<?= $allow['clock'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🕐</span> Klok</button>
-        <button type="button" role="menuitem" id="newCountdown" data-create="countdown"<?= $allow['countdown'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">⏳</span> Countdown</button>
+        <button type="button" role="menuitem" id="newCountdown" data-create="countdown"<?= $allow['countdown'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">📅</span> Afteller</button>
       </div>
     </div>
     <div class="zoom-ctl" role="group" aria-label="Zoomen">
@@ -197,7 +197,7 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
 
   <dialog id="countdownDialog" aria-labelledby="countdownTitle">
     <form id="countdownForm" method="dialog">
-      <h2 id="countdownTitle">Countdown</h2>
+      <h2 id="countdownTitle">Afteller</h2>
       <div class="clock-preview"><div class="countdown-art" id="countdownPreview"></div></div>
       <div class="field">
         <span class="field-label">Ontwerp</span>

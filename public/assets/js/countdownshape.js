@@ -122,6 +122,6 @@ export function updateCountdown(box, n, s) {
   const stamp = done ? 'done' : Math.floor(s / 60);
   if (host && c.stamp !== stamp) {
     c.stamp = stamp;
-    host.setAttribute('aria-label', `Countdown${n.label ? ' ' + n.label : ''}: ${done ? 'voorbij' : 'nog ' + p.map(([a, o, m]) => `${a} ${a === 1 ? o : m}`).join(' en ')}`);
+    host.setAttribute('aria-label', `Afteller${n.label ? ' ' + n.label : ''}: ${done ? 'voorbij' : 'nog ' + p.map(([a, o, m]) => `${a} ${a === 1 ? o : m}`).join(' en ')}`);
   }
 }

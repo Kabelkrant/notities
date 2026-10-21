@@ -88,7 +88,7 @@ function handle_upload(): never {
 
 /** Per itemtype het feature-vlaggetje (.env: ALLOW_<NAAM>) en de naam in meldingen; alleen soorten die via create_item worden aangemaakt. */
 const ITEM_FEATURES = [
-    'arrow' => ['ARROW', 'pijlen'], 'clock' => ['CLOCK', 'klokken'], 'wordart' => ['WORDART', 'WordArt'], 'countdown' => ['COUNTDOWN', 'countdowns'],
+    'arrow' => ['ARROW', 'pijlen'], 'clock' => ['CLOCK', 'klokken'], 'wordart' => ['WORDART', 'WordArt'], 'countdown' => ['COUNTDOWN', 'aftellers'],
 ];
 
 /** Beginwaarden (zonder x/y) van een nieuw item van dit type; w en h mogen door de client worden meegegeven. */

@@ -86,7 +86,7 @@ form.addEventListener('submit', async (e) => {
 });
 
 defineType('countdown', {
-  label: 'Countdown', edit: openCountdownDialog, dbl: true,
+  label: 'Afteller', edit: openCountdownDialog, dbl: true,
   create: () => ({ w: COUNTDOWN_DEFAULT_SIZE, top: 20 }),
   resize: { mode: 'square', min: COUNTDOWN_MIN_SIZE, max: COUNTDOWN_MAX_SIZE, fields: ['w'] },
 });
