@@ -81,7 +81,7 @@ function handle_upload(): never {
     $note = store()->create([
         'type' => 'image', 'file' => $name,
         'w' => clamp_int($w, MIN_IMAGE_SIZE, MAX_IMAGE_SIZE), 'h' => clamp_int($h, MIN_IMAGE_SIZE, MAX_IMAGE_SIZE),
-        'x' => clamp_int($_POST['x'] ?? 0, 0, 100000), 'y' => clamp_int($_POST['y'] ?? 0, 0, 100000),
+        'x' => clamp_int($_POST['x'] ?? 0, -100000, 100000), 'y' => clamp_int($_POST['y'] ?? 0, -100000, 100000),
     ]);
     respond(['note' => note_to_array($note)], 201);
 }
@@ -120,7 +120,7 @@ function item_defaults(string $type, array $in): array {
 function item_schema(string $type): array {
     $int = fn(int $min, int $max) => ['int', $min, $max];
     $text = fn(int $max) => ['text', $max];
-    return ['x' => $int(0, 100000), 'y' => $int(0, 100000)] + match ($type) {
+    return ['x' => $int(-100000, 100000), 'y' => $int(-100000, 100000)] + match ($type) {
         'image' => ['w' => $int(MIN_IMAGE_SIZE, MAX_IMAGE_SIZE), 'h' => $int(MIN_IMAGE_SIZE, MAX_IMAGE_SIZE)],
         'arrow' => [
             'w' => $int(MIN_ARROW_LENGTH, MAX_IMAGE_SIZE), 'h' => $int(MIN_ARROW_THICKNESS, MAX_ARROW_THICKNESS), 'rot' => ['rot'],
@@ -248,7 +248,7 @@ try {
         $color = valid_hex_color($in['color'] ?? null) ? $in['color'] : DEFAULT_COLOR;
         return [$title, $body, $color];
     };
-    $coord = fn(string $k): int => clamp_int($in[$k] ?? 0, 0, 100000);
+    $coord = fn(string $k): int => clamp_int($in[$k] ?? 0, -100000, 100000);
     $found = fn(?array $n): array => $n ?? respond(['error' => 'Notitie niet gevonden'], 404);
 
     switch ($action) {

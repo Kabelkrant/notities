@@ -3,7 +3,8 @@ export const csrf = boot.csrf;
 export const POLL_MS = 4000;
 export const UNDO_MS = 6000;
 export const MIN_SIZE = 40, MAX_SIZE = 5000;
-export const ZOOM_STEPS = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
+export const ZOOM_MIN = 0.05, ZOOM_MAX = 4;
+export const ZOOM_STEPS = [0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4]; // knoppen; het wiel zoomt traploos
 export const GRID = 20; // rasterstap in bordcoördinaten (snap to grid)
 // Drempels voor 'afbeelding te groot' (uit .env via de server)
 export const IMAGE_MAX_DIM = boot.imageMaxDim || 2000;
@@ -19,7 +20,9 @@ export const pendingDelete = new Map(); // id -> {timer, commit}
 
 export const state = {
   version: boot.version,
-  zoom: boot.zoom || 1,
+  zoom: boot.zoom || 1,   // huidig (getekend) zoomniveau; kan tijdens een animatie tussen twee stappen liggen
+  tx: boot.panX || 0,     // verschuiving van de wereld op het scherm (px)
+  ty: boot.panY || 0,
   snap: !!boot.snap,
   busy: false,            // slepen of schalen bezig
   missedWhileBusy: false,

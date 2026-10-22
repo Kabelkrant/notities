@@ -37,8 +37,8 @@ board.addEventListener('keydown', (e) => {
     const snapped = state.snap && n.type === 'note';
     const grid = snapped ? snapTo : (v) => v;
     const step = snapped ? (e.shiftKey ? 5 * GRID : GRID) : (e.shiftKey ? 50 : 10); // met raster: hele rasterstappen
-    n.x = Math.max(0, grid(n.x + (e.key === 'ArrowRight' ? step : e.key === 'ArrowLeft' ? -step : 0)));
-    n.y = Math.max(0, grid(n.y + (e.key === 'ArrowDown' ? step : e.key === 'ArrowUp' ? -step : 0)));
+    n.x = grid(n.x + (e.key === 'ArrowRight' ? step : e.key === 'ArrowLeft' ? -step : 0));
+    n.y = grid(n.y + (e.key === 'ArrowDown' ? step : e.key === 'ArrowUp' ? -step : 0));
     paint(item, n);
     if (snapped) { showGrid(true); clearTimeout(showGrid.t); showGrid.t = setTimeout(() => showGrid(false), 700); }
     clearTimeout(n._saveTimer);

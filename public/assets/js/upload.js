@@ -1,7 +1,8 @@
 import { els, csrf, IMAGE_MAX_DIM, IMAGE_MAX_BYTES, ALLOW } from './state.js';
-import { $, board, setStatus, reportError } from './ui.js';
+import { $, world, setStatus, reportError } from './ui.js';
 import { upsert } from './render.js';
 import { freeSpot } from './dialog.js';
+import { reveal } from './zoom.js';
 import { poll } from './sync.js';
 
 // De browser houdt rekening met EXIF-rotatie, dus meet het formaat daar.
@@ -97,8 +98,8 @@ async function uploadImage(file) {
     if (!res.ok) throw new Error(data.error || (res.status === 413 ? 'Afbeelding is te groot' : `Fout ${res.status}`));
     upsert(data.note);
     const el = els.get(data.note.id);
-    board.appendChild(el);
-    el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    world.appendChild(el);
+    reveal(el);
     setStatus('');
     poll();
   } catch (err) {

@@ -5,6 +5,7 @@ import { api } from './api.js';
 import { poll } from './sync.js';
 import { snapTo, showGrid } from './snap.js';
 import { paint } from './render.js';
+import { refreshBars } from './zoom.js';
 import { TYPES } from './types.js';
 
 // Slepen, schalen en roteren (Pointer Events)
@@ -74,8 +75,8 @@ function resizeBox(e) {
   const px = resize.ox + resize.ow / 2 + pdx, py = resize.oy + resize.oh / 2 + pdy; // vaste hoek
   const [ndx, ndy] = rotv(nw / 2, nh / 2);
   n.w = nw; n.h = nh;
-  n.x = Math.max(0, Math.round(px + ndx - nw / 2));
-  n.y = Math.max(0, Math.round(py + ndy - nh / 2));
+  n.x = Math.round(px + ndx - nw / 2);
+  n.y = Math.round(py + ndy - nh / 2);
   paint(item, n);
 }
 
@@ -108,18 +109,18 @@ board.addEventListener('pointermove', (e) => {
     drag.moved = true; state.busy = true;
     showGrid(drag.n.type === 'note');
     const focused = document.activeElement;
-    for (const g of drag.group) { g.el.classList.add('dragging'); board.appendChild(g.el); } // naar voren; herstel daarna de focus
+    for (const g of drag.group) { g.el.classList.add('dragging'); world.appendChild(g.el); } // naar voren; herstel daarna de focus
     if (focused === drag.item) drag.item.focus({ preventScroll: true });
   }
-  // de verschuiving volgt het raster van het gesleepte item; geen enkel item mag links of boven het bord uitkomen
+  // de verschuiving volgt het raster van het gesleepte item
   const grid = drag.n.type === 'note' ? snapTo : (v) => v;
-  const ddx = Math.max(grid(Math.round(drag.ox + dx)) - drag.ox, -Math.min(...drag.group.map((g) => g.ox)));
-  const ddy = Math.max(grid(Math.round(drag.oy + dy)) - drag.oy, -Math.min(...drag.group.map((g) => g.oy)));
+  const ddx = grid(Math.round(drag.ox + dx)) - drag.ox, ddy = grid(Math.round(drag.oy + dy)) - drag.oy;
   for (const g of drag.group) {
     g.n.x = g.ox + ddx; g.n.y = g.oy + ddy;
     g.el.style.left = g.n.x + 'px';
     g.el.style.top = g.n.y + 'px';
   }
+  refreshBars();
 });
 
 function endPointer(e) {

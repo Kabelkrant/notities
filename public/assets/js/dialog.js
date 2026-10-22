@@ -1,8 +1,9 @@
 import { COLORS, items, els, state } from './state.js';
-import { $, board, dialog, form } from './ui.js';
+import { $, world, dialog, form } from './ui.js';
 import { api } from './api.js';
 import { upsert } from './render.js';
 import { poll } from './sync.js';
+import { reveal, visibleWorld } from './zoom.js';
 import { defineType } from './types.js';
 import './format.js';
 
@@ -60,12 +61,14 @@ export function freeSpot(w = 262, h = 140, top = SPOT_GAP) {
     rects.push([n.x, n.y, n.x + iw, n.y + ih]);
   }
   const free = (x, y) => !rects.some(([l, t, r, b]) => x < r + SPOT_GAP && x + w > l - SPOT_GAP && y < b + SPOT_GAP && y + h > t - SPOT_GAP);
-  const maxX = Math.max(SPOT_GAP, Math.floor(board.clientWidth / state.zoom) - w - SPOT_GAP);
-  const maxY = rects.reduce((m, r) => Math.max(m, r[3]), 0);
-  for (let y = top; y <= maxY + SPOT_GAP; y += SPOT_STEP) {
-    for (let x = SPOT_GAP; x <= maxX; x += SPOT_STEP) if (free(x, y)) return { x, y };
+  // zoek in het zichtbare deel van het bord (links naar rechts, boven naar beneden), daarna onder alle items
+  const v = visibleWorld(), x0 = Math.ceil((v.x0 + SPOT_GAP) / SPOT_STEP) * SPOT_STEP, y0 = Math.ceil((v.y0 + top) / SPOT_STEP) * SPOT_STEP;
+  const maxX = Math.max(x0, Math.floor(v.x1 - w - SPOT_GAP));
+  const maxY = Math.max(v.y1, rects.reduce((m, r) => Math.max(m, r[3]), y0));
+  for (let y = y0; y <= maxY + SPOT_GAP; y += SPOT_STEP) {
+    for (let x = x0; x <= maxX; x += SPOT_STEP) if (free(x, y)) return { x, y };
   }
-  return { x: SPOT_GAP, y: Math.ceil((maxY + SPOT_GAP) / SPOT_STEP) * SPOT_STEP };
+  return { x: x0, y: Math.ceil((maxY + SPOT_GAP) / SPOT_STEP) * SPOT_STEP };
 }
 
 form.addEventListener('submit', async (e) => {
@@ -77,9 +80,9 @@ form.addEventListener('submit', async (e) => {
   try {
     const { note } = await api(payload);
     upsert(note);
-    board.appendChild(els.get(note.id));
+    world.appendChild(els.get(note.id));
     dialog.close();
-    if (!id) els.get(note.id).scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    if (!id) reveal(els.get(note.id));
     poll();
   } catch (err) {
     if (err.status === 409) forceSave = true; // bij nogmaals opslaan bewust overschrijven

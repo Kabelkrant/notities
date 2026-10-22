@@ -1,5 +1,6 @@
 import { items, els, pendingDelete, selected } from './state.js';
-import { board } from './ui.js';
+import { world } from './ui.js';
+import { refreshBars } from './zoom.js';
 import { needsLightText } from './color.js';
 import { arrowSvg } from './arrowshape.js';
 import { clockMarkup, updateClock, timeIn } from './clockshape.js';
@@ -77,6 +78,7 @@ function buildItem(n) {
 }
 
 export function paint(el, n) {
+  refreshBars();
   el.style.left = n.x + 'px';
   el.style.top = n.y + 'px';
   if (n.type === 'wordart') {
@@ -144,7 +146,7 @@ export function upsert(n) {
   if (!el) {
     el = buildItem(n);
     els.set(n.id, el);
-    board.appendChild(el);
+    world.appendChild(el);
   }
   paint(el, n);
 }
@@ -154,6 +156,7 @@ export function remove(id) {
   selected.delete(id);
   els.get(id)?.remove();
   els.delete(id);
+  refreshBars();
 }
 
 export function applyServerItems(list) {
@@ -163,7 +166,7 @@ export function applyServerItems(list) {
     seen.add(n.id);
     const old = items.get(n.id);
     if (!old || sig(old) !== sig(n)) upsert(n);
-    board.appendChild(els.get(n.id)); // volgorde = laatst gewijzigd bovenaan
+    world.appendChild(els.get(n.id)); // volgorde = laatst gewijzigd bovenaan
   }
   for (const id of [...items.keys()]) if (!seen.has(id) && !pendingDelete.has(id)) remove(id);
 }

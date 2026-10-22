@@ -21,10 +21,10 @@ export function toggleSelected(id) {
 
 let box = null, band = null;
 
+// Klikken op leeg bord heft de selectie op (slepen daar pant het bord); Shift+slepen trekt een kader, met Ctrl erbij wordt toegevoegd
 board.addEventListener('pointerdown', (e) => {
-  if (e.target !== board || e.button > 0 || e.pointerType === 'touch') return;
-  const r = board.getBoundingClientRect();
-  if (e.clientX >= r.left + board.clientWidth || e.clientY >= r.top + board.clientHeight) return; // scrollbalk
+  if (e.target !== board || e.button !== 0) return;
+  if (!e.shiftKey) { if (!e.ctrlKey && !e.metaKey) clearSelection(); return; }
   const add = e.ctrlKey || e.metaKey;
   if (!add) clearSelection();
   document.activeElement?.blur?.();
@@ -41,8 +41,8 @@ function update(e) {
   const r = board.getBoundingClientRect();
   const x1 = Math.min(box.sx, e.clientX), x2 = Math.max(box.sx, e.clientX);
   const y1 = Math.min(box.sy, e.clientY), y2 = Math.max(box.sy, e.clientY);
-  band.style.left = x1 - r.left + board.scrollLeft + 'px';
-  band.style.top = y1 - r.top + board.scrollTop + 'px';
+  band.style.left = x1 - r.left + 'px';
+  band.style.top = y1 - r.top + 'px';
   band.style.width = x2 - x1 + 'px';
   band.style.height = y2 - y1 + 'px';
   selected.clear();

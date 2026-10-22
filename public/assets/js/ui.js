@@ -1,7 +1,7 @@
 import { state } from './state.js';
 
 export const $ = (id) => document.getElementById(id);
-export const board = $('board'), dialog = $('noteDialog'), form = $('noteForm');
+export const board = $('board'), world = $('world'), dialog = $('noteDialog'), form = $('noteForm');
 export const statusEl = $('status'), toast = $('toast');
 
 export function setStatus(text, isError = false, holdMs = 0) {

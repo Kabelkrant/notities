@@ -8,8 +8,12 @@ header('Cache-Control: private, no-store');
 $authed = Auth::check();
 $appName = Auth::appName();
 $notes = $authed ? all_notes() : [];
-// Zoomniveau uit de cookie 'zoom' (door app geschreven); server zet het meteen, zodat de pagina niet eerst op 100% laadt.
-$zoom = isset($_COOKIE['zoom']) && is_numeric($_COOKIE['zoom']) ? max(0.25, min(3.0, (float)$_COOKIE['zoom'])) : 1.0;
+// Zicht op het bord uit de cookie 'view' (zoom,x,y; door app geschreven); server zet het meteen, zodat de pagina niet eerst op 100% laadt.
+// Oudere installaties hebben alleen de cookie 'zoom'.
+$view = array_map('floatval', array_pad(array_filter(explode(',', (string)($_COOKIE['view'] ?? '')), 'is_numeric'), 3, 0));
+if (!isset($_COOKIE['view']) && isset($_COOKIE['zoom']) && is_numeric($_COOKIE['zoom'])) $view = [(float)$_COOKIE['zoom'], 0.0, 0.0];
+$zoom = $view[0] > 0 ? max(0.05, min(4.0, $view[0])) : 1.0;
+$panX = max(-1e7, min(1e7, $view[1])); $panY = max(-1e7, min(1e7, $view[2]));
 $snap = ($_COOKIE['snap'] ?? '') === '1';
 // Drempels voor 'afbeelding te groot' (vraag om te verkleinen), uit .env; ongeldige waarden vallen terug op de standaard
 $envInt = fn(string $k, int $default, int $min, int $max): int => max($min, min($max, (int)(Auth::env($k) ?: $default)));
@@ -24,6 +28,8 @@ $boot = [
     'auth' => $authed,
     'snap' => $snap,
     'zoom' => $zoom,
+    'panX' => $panX,
+    'panY' => $panY,
     'csrf' => csrf_token(),
     'version' => notes_version($notes),
     'notes' => $notes,
@@ -89,7 +95,7 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
     <input type="file" id="imageInput" accept="image/png,image/jpeg,image/gif,image/webp,image/avif" hidden>
   </div>
 
-  <main id="board" class="board<?= $snap ? ' snap' : '' ?>" aria-label="Notitiebord" style="--zoom: <?= $zoom ?>"></main>
+  <main id="board" class="board<?= $snap ? ' snap' : '' ?>" aria-label="Notitiebord" style="--zoom: <?= $zoom ?>; --tx: <?= $panX ?>px; --ty: <?= $panY ?>px"><div id="world" class="world"></div></main>
 
   <dialog id="noteDialog">
     <form id="noteForm" method="dialog">
