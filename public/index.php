@@ -74,7 +74,7 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
         <button type="button" role="menuitem" id="newNote"<?= $allow['notes'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🗒️</span> Notitie</button>
         <button type="button" role="menuitem" id="newImage"<?= $allow['pictures'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🖼️</span> Afbeelding</button>
         <button type="button" role="menuitem" id="newWordart" data-create="wordart"<?= $allow['wordart'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🌈</span> WordArt</button>
-        <button type="button" role="menuitem" id="newShape" data-create="shape"<?= $allow['shape'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🔴</span> Vorm</button>
+        <button type="button" role="menuitem" id="newShape" data-create="shape"<?= $allow['shape'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🟪</span> Vorm</button>
         <button type="button" role="menuitem" id="newClock" data-create="clock"<?= $allow['clock'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🕐</span> Klok</button>
         <button type="button" role="menuitem" id="newCountdown" data-create="countdown"<?= $allow['countdown'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">📅</span> Afteller</button>
       </div>
