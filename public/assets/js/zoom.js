@@ -112,7 +112,7 @@ board.addEventListener('wheel', (e) => {
   const unit = e.deltaMode === 1 ? 19 : e.deltaMode === 2 ? rect().height : 1; // regels en pagina's omrekenen naar pixels
   if (e.ctrlKey || e.metaKey) {
     const d = clamp(e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1), -160, 160);
-    const isPinch = e.ctrlKey && Math.abs(e.deltaY) < 20; // een echte pinch geeft kleine delta's; Ctrl + muiswiel gewoon wielsnelheid
+    const isPinch = e.ctrlKey && e.deltaMode === 0 && Math.abs(e.deltaY) < 20; // een echte pinch geeft kleine pixel-delta's; een wielstap (ook in regels, Firefox) heeft de gewone wielsnelheid
     setZoom(goal * Math.exp(-d * (isPinch ? PINCH_K : WHEEL_K)), e.clientX, e.clientY);
     return;
   }
