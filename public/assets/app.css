@@ -359,6 +359,7 @@ body.mode-notes .board { visibility: hidden; } /* blijft bestaan (maten, plaatsi
 .na-ficon { flex: none; width: 1.4rem; text-align: center; font-size: 1.05rem; }
 .na-fname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .na-factions { flex: none; display: inline-flex; gap: .2rem; opacity: 0; }
+.na-factions[hidden] { display: none; } /* het hidden-attribuut verliest het van display: inline-flex: voor de systeemmappen blijven de knopjes anders op hover zichtbaar */
 .na-fhead:hover .na-factions, .na-fhead:focus-within .na-factions { opacity: 1; }
 @media (pointer: coarse) { .na-factions { opacity: .8; } }
 .na-factions button { padding: .1rem .35rem; font-size: .85rem; line-height: 1.2; border: none; background: transparent; }

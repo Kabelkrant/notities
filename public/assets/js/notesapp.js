@@ -307,7 +307,7 @@ $('naNewFolder').addEventListener('click', async () => {
 
 function startRename(sec) {
   const fid = Number(sec.dataset.folder);
-  if (fid === GENERAL || sec.querySelector('.na-rename')) return;
+  if (fid <= GENERAL || sec.querySelector('.na-rename')) return; // de systeemmappen (niet ingedeeld) en Prullenbak hebben een vaste naam
   const nameEl = sec.querySelector('.na-fname'), old = state.folders.find((f) => f.id === fid)?.name ?? '';
   const input = Object.assign(document.createElement('input'), { type: 'text', className: 'na-rename', value: old, maxLength: 60 });
   input.setAttribute('aria-label', 'Naam van de map');
@@ -331,6 +331,7 @@ function startRename(sec) {
 
 async function deleteFolder(btn, sec) {
   const fid = Number(sec.dataset.folder);
+  if (fid <= GENERAL) return; // systeemmappen kunnen niet weg
   if (!btn.classList.contains('confirm')) { // eerst bevestigen: een tweede klik verwijdert (de notities verhuizen naar (niet ingedeeld))
     btn.classList.add('confirm'); btn.textContent = 'Zeker?';
     setTimeout(() => { btn.classList.remove('confirm'); btn.textContent = '🗑️'; }, 3000);
