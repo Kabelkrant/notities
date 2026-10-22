@@ -1,8 +1,8 @@
-import { UNDO_MS, GRID, items, els, pendingDelete, selected, state } from './state.js';
+import { UNDO_MS, GRID, TRASH, items, els, pendingDelete, hiddenIds, selected, state } from './state.js';
 import { snapTo, showGrid } from './snap.js';
 import { board, reportError, showToast, hideToast } from './ui.js';
 import { api } from './api.js';
-import { paint, remove, notifyChanged } from './render.js';
+import { paint, remove, upsert, notifyChanged } from './render.js';
 import { poll } from './sync.js';
 import { saveMove, saveItem } from './drag.js';
 import { deselect } from './selection.js';
@@ -61,28 +61,52 @@ addEventListener('keydown', (e) => {
   else if (e.key.startsWith('Arrow')) { e.preventDefault(); moveKey(e, ids[0]); }
 });
 
-// Verwijderen met ongedaan maken; meerdere items (selectie) vormen één melding en één Ongedaan maken
+// Weggooien met ongedaan maken. Notities gaan eerst naar de Prullenbak (meteen van het canvas af); uit de Prullenbak, en andere items
+// (afbeelding, vorm, klok, ...), worden ze na 6 seconden definitief verwijderd. Meerdere items vormen één melding en één Ongedaan maken.
 export function softDelete(ids) {
   ids = ids.filter((id) => items.has(id));
   if (!ids.length) return;
   deselect(ids);
-  for (const id of ids) els.get(id).hidden = true;
+  const toTrash = ids.filter((id) => { const n = items.get(id); return n.type === 'note' && n.folder !== TRASH; });
+  const perm = ids.filter((id) => !toTrash.includes(id));
+  const prev = new Map(toTrash.map((id) => [id, items.get(id).folder]));
+  const label = (id) => typeLabel(items.get(id));
+  const fromTrash = perm.length > 0 && perm.every((id) => items.get(id).type === 'note'); // alleen notities uit de Prullenbak
+  const text = !perm.length
+    ? (toTrash.length > 1 ? `${toTrash.length} notities naar de prullenbak verplaatst` : `${label(toTrash[0])} naar de prullenbak verplaatst`)
+    : !toTrash.length
+      ? (perm.length > 1 ? `${perm.length} ${fromTrash ? 'notities' : 'items'} ${fromTrash ? 'definitief ' : ''}verwijderd` : `${label(perm[0])} ${fromTrash ? 'definitief ' : ''}verwijderd`)
+      : `${ids.length} items verwijderd (${toTrash.length} naar de prullenbak)`;
+
+  // Naar de Prullenbak (of terug): lokaal meteen, daarna de server; bij een fout terugdraaien
+  const move = async (id, folder) => {
+    const n = items.get(id); if (!n) return;
+    const was = n.folder;
+    n.folder = folder; upsert(n);
+    try { const { note } = await api({ action: 'note_folder', id, folder }); upsert(note); poll(); }
+    catch (err) { n.folder = was; upsert(n); reportError(err); }
+  };
+  for (const id of toTrash) move(id, TRASH);
+
+  // Definitief verwijderen, met 6 seconden bedenktijd
+  for (const id of perm) { hiddenIds.add(id); if (els.get(id)) els.get(id).hidden = true; }
   notifyChanged();
   let done = false;
   const commit = (keepalive = false) => {
     if (done) return;
     done = true;
-    for (const id of ids) {
+    for (const id of perm) {
       pendingDelete.delete(id);
       api({ action: 'delete', id }, { keepalive }).then(() => { remove(id); poll(); })
-        .catch((err) => { if (els.get(id)) els.get(id).hidden = false; reportError(err); });
+        .catch((err) => { hiddenIds.delete(id); if (els.get(id)) els.get(id).hidden = false; notifyChanged(); reportError(err); });
     }
   };
-  const timer = setTimeout(() => { hideToast(); commit(); }, UNDO_MS);
-  for (const id of ids) pendingDelete.set(id, { timer, commit });
-  showToast(ids.length > 1 ? `${ids.length} items verwijderd` : `${typeLabel(items.get(ids[0]))} verwijderd`, () => {
+  const timer = perm.length ? setTimeout(() => { hideToast(); commit(); }, UNDO_MS) : 0;
+  for (const id of perm) pendingDelete.set(id, { timer, commit });
+  showToast(text, () => {
     clearTimeout(timer); done = true;
-    for (const id of ids) { pendingDelete.delete(id); els.get(id).hidden = false; }
+    for (const id of perm) { pendingDelete.delete(id); hiddenIds.delete(id); if (els.get(id)) els.get(id).hidden = false; }
+    for (const id of toTrash) move(id, prev.get(id));
     notifyChanged();
   });
 }

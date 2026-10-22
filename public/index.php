@@ -16,6 +16,8 @@ if (!isset($_COOKIE['view']) && isset($_COOKIE['zoom']) && is_numeric($_COOKIE['
 $zoom = $view[0] > 0 ? max(0.05, min(4.0, $view[0])) : 1.0;
 $panX = max(-1e7, min(1e7, $view[1])); $panY = max(-1e7, min(1e7, $view[2]));
 $snap = ($_COOKIE['snap'] ?? '') === '1';
+// Breedte van de lijst in de notitie-app (px, cookie 'nasplit'); zonder cookie geldt de standaard van een derde
+$naLeft = isset($_COOKIE['nasplit']) && ctype_digit((string)$_COOKIE['nasplit']) ? max(200, min(3000, (int)$_COOKIE['nasplit'])) : null;
 $mode = $authed && ($_COOKIE['mode'] ?? '') === 'notes' ? 'notes' : 'canvas'; // weergavemodus: canvas of notitie-app (cookie 'mode', door de app geschreven)
 // Drempels voor 'afbeelding te groot' (vraag om te verkleinen), uit .env; ongeldige waarden vallen terug op de standaard
 $envInt = fn(string $k, int $default, int $min, int $max): int => max($min, min($max, (int)(Auth::env($k) ?: $default)));
@@ -104,7 +106,7 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
 
   <main id="board" class="board<?= $snap ? ' snap' : '' ?>" aria-label="Notitiebord" ><div id="world" class="world" style="transform: translate(<?= $panX ?>px, <?= $panY ?>px) scale(<?= $zoom ?>)"></div></main>
 
-  <div id="notesApp" class="notes-app" aria-label="Notities"<?= $mode === 'notes' ? '' : ' hidden' ?>>
+  <div id="notesApp" class="notes-app" aria-label="Notities"<?= $naLeft ? ' style="--na-left: ' . $naLeft . 'px"' : '' ?><?= $mode === 'notes' ? '' : ' hidden' ?>>
     <aside class="na-list-pane" aria-label="Lijst met notities">
       <div class="na-list-head">
         <h2>Notities</h2>
@@ -115,6 +117,7 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
       </div>
       <div class="na-list" id="naList" role="tree" aria-label="Mappen en notities"></div>
     </aside>
+    <div class="na-splitter" id="naSplitter" role="separator" aria-orientation="vertical" aria-label="Breedte van de lijst" title="Sleep om de breedte te wijzigen (dubbelklik: standaard)" tabindex="0"></div>
     <section class="na-editor-pane" aria-label="Notitie">
       <p class="na-empty" id="naEmpty">Kies een notitie in de lijst of maak een nieuwe.</p>
       <div class="na-editor" id="naEditor" hidden>

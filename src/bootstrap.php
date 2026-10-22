@@ -177,7 +177,7 @@ function note_to_array(array $r): array {
         'html' => render_body($r['body']),
         'color' => $r['color'],
         'order' => (int)($r['order'] ?? -$r['id']), // volgorde in de notitie-app (standaard nieuwste eerst); los van positie en stapelvolgorde op het canvas
-        'folder' => (int)($r['folder'] ?? 0),       // map in de notitie-app; 0 = (niet ingedeeld)
+        'folder' => (int)($r['folder'] ?? 0),       // map in de notitie-app; 0 = (niet ingedeeld), -1 = Prullenbak
     ];
 }
 

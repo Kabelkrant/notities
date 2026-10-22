@@ -1,4 +1,4 @@
-import { items, els, pendingDelete, selected } from './state.js';
+import { items, els, pendingDelete, selected, hiddenIds, TRASH } from './state.js';
 import { world } from './ui.js';
 import { refreshBars } from './zoom.js';
 import { needsLightText } from './color.js';
@@ -155,6 +155,11 @@ export const notifyChanged = () => window.dispatchEvent(new Event('notes:changed
 export function upsert(n) {
   items.set(n.id, n);
   let el = els.get(n.id);
+  if (n.type === 'note' && n.folder === TRASH) { // notities in de Prullenbak staan niet op het canvas
+    if (el) { el.remove(); els.delete(n.id); selected.delete(n.id); refreshBars(); }
+    notifyChanged();
+    return;
+  }
   if (!el) {
     el = buildItem(n);
     els.set(n.id, el);
@@ -166,6 +171,7 @@ export function upsert(n) {
 
 export function remove(id) {
   items.delete(id);
+  hiddenIds.delete(id);
   selected.delete(id);
   els.get(id)?.remove();
   els.delete(id);
@@ -180,7 +186,8 @@ export function applyServerItems(list) {
     seen.add(n.id);
     const old = items.get(n.id);
     if (!old || sig(old) !== sig(n)) upsert(n);
-    world.appendChild(els.get(n.id)); // volgorde = laatst gewijzigd bovenaan
+    const el = els.get(n.id);
+    if (el) world.appendChild(el); // volgorde = laatst gewijzigd bovenaan (notities in de Prullenbak hebben geen element)
   }
   for (const id of [...items.keys()]) if (!seen.has(id) && !pendingDelete.has(id)) remove(id);
 }

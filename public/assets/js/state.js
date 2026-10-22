@@ -17,6 +17,8 @@ export const items = new Map();   // id -> data (notitie of afbeelding)
 export const els = new Map();     // id -> element
 export const selected = new Set();      // ids van geselecteerde items
 export const pendingDelete = new Map(); // id -> {timer, commit}
+export const hiddenIds = new Set();     // ids die (tijdelijk) niet meer getoond worden, in afwachting van definitief verwijderen
+export const TRASH = -1;                // map-id van de systeemmap Prullenbak; notities daarin staan niet op het canvas
 
 export const state = {
   version: boot.version,

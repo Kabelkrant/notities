@@ -13,6 +13,8 @@ final class JsonStore
 {
     /** Naam van map 0: waar notities zonder (bestaande) map staan. */
     public const GENERAL = '(niet ingedeeld)';
+    /** Systeemmap voor weggegooide notities (id -1): niet op het canvas; definitief verwijderen kan alleen vanuit deze map. */
+    public const TRASH = 'Prullenbak';
 
     public function __construct(private string $path) {}
 
@@ -81,7 +83,8 @@ final class JsonStore
     {
         $f = array_values($d['folders'] ?? []);
         if (!array_filter($f, fn($x) => $x['id'] === 0)) array_unshift($f, ['id' => 0, 'name' => self::GENERAL]);
-        return array_map(fn($x) => $x['id'] === 0 ? ['id' => 0, 'name' => self::GENERAL] : $x, $f); // de naam van map 0 staat vast
+        if (!array_filter($f, fn($x) => $x['id'] === -1)) $f[] = ['id' => -1, 'name' => self::TRASH];
+        return array_map(fn($x) => $x['id'] === 0 ? ['id' => 0, 'name' => self::GENERAL] : ($x['id'] === -1 ? ['id' => -1, 'name' => self::TRASH] : $x), $f); // de namen van de systeemmappen staan vast
     }
 
     /** @return list<array{id:int,name:string}> */
@@ -96,7 +99,9 @@ final class JsonStore
             $d['folders'] = $this->folderList($d);
             $id = $d['next_folder_id'] ?? 1;
             $d['next_folder_id'] = $id + 1;
-            $d['folders'][] = $folder = ['id' => $id, 'name' => $name];
+            $folder = ['id' => $id, 'name' => $name];
+            $at = array_search(-1, array_column($d['folders'], 'id'), true); // nieuwe mappen komen vóór de Prullenbak
+            array_splice($d['folders'], $at === false ? count($d['folders']) : $at, 0, [$folder]);
             return $folder;
         }, write: true);
     }
@@ -110,10 +115,10 @@ final class JsonStore
         }, write: true);
     }
 
-    /** Verwijdert een map; de notities erin verhuizen naar de map (niet ingedeeld). Map 0 kan niet weg. */
+    /** Verwijdert een map; de notities erin verhuizen naar de map (niet ingedeeld). De systeemmappen (0 en -1) kunnen niet weg. */
     public function deleteFolder(int $id): bool
     {
-        if ($id === 0) return false;
+        if ($id <= 0) return false; // Systeemmappen (0 en -1) kunnen niet weg
         return $this->read(function (array &$d) use ($id) {
             $d['folders'] = $this->folderList($d);
             $before = count($d['folders']);

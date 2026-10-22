@@ -1,4 +1,4 @@
-import { COLORS, items, els, state } from './state.js';
+import { COLORS, TRASH, items, els, hiddenIds, state } from './state.js';
 import { $ } from './ui.js';
 import { api } from './api.js';
 import { upsert } from './render.js';
@@ -30,17 +30,58 @@ setupEditor(field, body, null);
 let activeId = null, dirty = false, saving = false, saveTimer = 0, base = null, color = COLORS[0], conflict = false;
 
 // Ingeklapte mappen onthouden we per browser
-let collapsed = new Set();
-try { collapsed = new Set(JSON.parse(localStorage.getItem('na-collapsed') || '[]')); } catch { /* geen opslag beschikbaar */ }
+let collapsed = new Set([TRASH]); // de Prullenbak staat standaard ingeklapt
+try { const raw = localStorage.getItem('na-collapsed'); if (raw !== null) collapsed = new Set(JSON.parse(raw)); } catch { /* geen opslag beschikbaar */ }
 const saveCollapsed = () => { try { localStorage.setItem('na-collapsed', JSON.stringify([...collapsed])); } catch { /* geen opslag */ } };
 
 const folderIds = () => state.folders.map((f) => f.id);
 const folderOf = (n) => folderIds().includes(n.folder) ? n.folder : GENERAL; // een onbekende map telt als (niet ingedeeld)
-const visibleNotes = () => [...items.values()].filter((n) => n.type === 'note' && !els.get(n.id)?.hidden).sort((a, b) => a.order - b.order || b.id - a.id);
+const gone = (id) => els.get(id)?.hidden || hiddenIds.has(id); // tijdelijk weggehaald (definitief verwijderen loopt)
+const visibleNotes = () => [...items.values()].filter((n) => n.type === 'note' && !gone(n.id)).sort((a, b) => a.order - b.order || b.id - a.id);
 const section = (fid) => list.querySelector(`.na-folder[data-folder="${fid}"]`);
 const itemEl = (id) => list.querySelector(`.na-item[data-id="${id}"]`);
 const sections = () => [...list.querySelectorAll('.na-folder')];
 const itemsOf = (sec) => [...sec.querySelectorAll('.na-item')];
+
+/* ---------- Verschuifbare grens tussen lijst en editor (breedte in de cookie 'nasplit') ---------- */
+const splitter = $('naSplitter'), MIN_LEFT = 200, MIN_RIGHT = 420, GRIP = 9;
+const maxLeft = () => Math.max(MIN_LEFT, app.clientWidth - MIN_RIGHT - GRIP);
+const leftWidth = () => Math.round(list.closest('.na-list-pane').getBoundingClientRect().width);
+let customSplit = /--na-left/.test(app.getAttribute('style') || '');
+function setLeft(px, save = false) {
+  px = Math.round(Math.min(maxLeft(), Math.max(MIN_LEFT, px)));
+  app.style.setProperty('--na-left', px + 'px');
+  splitter.setAttribute('aria-valuenow', String(px));
+  customSplit = true;
+  if (save) document.cookie = `nasplit=${px}; path=/; max-age=31536000; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`;
+}
+let resizing = null;
+splitter.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0) return;
+  resizing = { pid: e.pointerId };
+  splitter.setPointerCapture(e.pointerId);
+  app.classList.add('na-resizing');
+  e.preventDefault();
+});
+splitter.addEventListener('pointermove', (e) => { if (resizing && e.pointerId === resizing.pid) setLeft(e.clientX - app.getBoundingClientRect().left); });
+function endResize(e) {
+  if (!resizing || e.pointerId !== resizing.pid) return;
+  resizing = null; app.classList.remove('na-resizing');
+  setLeft(leftWidth(), true);
+}
+splitter.addEventListener('pointerup', endResize);
+splitter.addEventListener('pointercancel', endResize);
+splitter.addEventListener('dblclick', () => { // terug naar de standaardverdeling (een derde)
+  app.style.removeProperty('--na-left'); customSplit = false;
+  document.cookie = 'nasplit=; path=/; max-age=0; SameSite=Lax';
+});
+splitter.addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  e.preventDefault();
+  setLeft(leftWidth() + (e.key === 'ArrowRight' ? 1 : -1) * (e.shiftKey ? 100 : 20), true);
+});
+addEventListener('resize', () => { if (customSplit && app.clientWidth) setLeft(leftWidth()); }); // een kleiner venster: de lijst krimpt mee, de editor houdt zijn minimale breedte
+window.addEventListener('mode:changed', () => { if (customSplit && app.clientWidth) setLeft(leftWidth()); });
 
 /* ---------- Boom ---------- */
 function buildFolder(f) {
@@ -51,7 +92,7 @@ function buildFolder(f) {
       <span class="na-ficon" aria-hidden="true">📂</span><span class="na-fname"></span><span class="na-fcount"></span>
       <span class="na-factions"><button type="button" class="na-fedit" title="Naam wijzigen" aria-label="Naam wijzigen">✏️</button><button type="button" class="na-fdel" title="Map verwijderen" aria-label="Map verwijderen">🗑️</button></span>
     </div><div class="na-fnotes" role="group"></div>`;
-  if (f.id === GENERAL) sec.querySelector('.na-factions').hidden = true; // (niet ingedeeld) blijft altijd bestaan
+  if (f.id <= GENERAL) sec.querySelector('.na-factions').hidden = true; // de systeemmappen (niet ingedeeld) en Prullenbak blijven altijd bestaan
   return sec;
 }
 
@@ -76,7 +117,7 @@ function renderList() {
     const isCollapsed = collapsed.has(f.id), head = sec.querySelector('.na-fhead');
     sec.classList.toggle('collapsed', isCollapsed);
     head.setAttribute('aria-expanded', String(!isCollapsed));
-    sec.querySelector('.na-ficon').textContent = isCollapsed ? '📁' : '📂'; // dichte of geopende map
+    sec.querySelector('.na-ficon').textContent = f.id === TRASH ? '🗑️' : isCollapsed ? '📁' : '📂'; // dichte of geopende map; de Prullenbak heeft een eigen icoon
     if (!sec.querySelector('.na-rename')) sec.querySelector('.na-fname').textContent = f.name;
     sec.querySelector('.na-fcount').textContent = byFolder.get(f.id).length;
     const box = sec.querySelector('.na-fnotes');
@@ -201,11 +242,11 @@ $('naTakeTheirs').addEventListener('click', () => { dirty = false; conflict = fa
 $('naBack').addEventListener('click', async () => { await flush(); app.classList.remove('na-open'); });
 $('naDelete').addEventListener('click', async () => {
   if (activeId === null) return;
-  const id = activeId, order = [...list.querySelectorAll('.na-item')].map((e) => Number(e.dataset.id)), i = order.indexOf(id), next = order[i + 1] ?? order[i - 1];
+  const id = activeId, order = [...list.querySelectorAll('.na-folder:not(.collapsed) .na-item')].map((e) => Number(e.dataset.id)), i = order.indexOf(id), next = order[i + 1] ?? order[i - 1];
   clearTimeout(saveTimer); dirty = false;
-  softDelete([id]); // met melding en Ongedaan maken, zoals op het canvas
+  softDelete([id]); // naar de Prullenbak, met melding en Ongedaan maken; uit de Prullenbak definitief
   renderList();
-  if (next !== undefined) select(next); else showNone();
+  if (next !== undefined && next !== id) select(next); else showNone();
 });
 folderSelect.addEventListener('change', async () => { // map van de notitie wijzigen (ook handig op touch, waar slepen lastig is)
   if (activeId === null) return;
@@ -222,7 +263,7 @@ $('naNew').addEventListener('click', async () => {
   await flush();
   try {
     const { x, y } = freeSpot();
-    const cur = items.get(activeId), folder = cur ? folderOf(cur) : GENERAL; // in de map van de geopende notitie
+    const cur = items.get(activeId), curFolder = cur ? folderOf(cur) : GENERAL, folder = curFolder === TRASH ? GENERAL : curFolder; // in de map van de geopende notitie (niet in de Prullenbak)
     const { note } = await api({ action: 'create', title: 'Nieuwe notitie', body: '', color: COLORS[0], x, y, folder });
     upsert(note);
     collapsed.delete(folder); saveCollapsed();
@@ -294,7 +335,7 @@ window.addEventListener('notes:changed', () => {
     renderList();
     if (activeId === null) return;
     const n = items.get(activeId);
-    if (!n || els.get(activeId)?.hidden) { const first = list.querySelector('.na-item'); first ? select(Number(first.dataset.id)) : showNone(); return; }
+    if (!n || gone(activeId)) { const first = list.querySelector('.na-item'); first ? select(Number(first.dataset.id)) : showNone(); return; }
     if (!dirty && !saving && base && (n.title !== base.title || n.body !== base.body || n.color !== base.color)) { // door iemand anders gewijzigd
       const s = body.selectionStart, e = body.selectionEnd;
       fill(n);
@@ -311,7 +352,9 @@ async function saveLayout() {
   const secs = sections(), ids = secs.map((s) => Number(s.dataset.folder)), notes = [];
   for (const s of secs) for (const el of itemsOf(s)) notes.push([Number(el.dataset.id), Number(s.dataset.folder)]);
   state.folders = ids.map((id) => state.folders.find((f) => f.id === id)).filter(Boolean); // lokaal alvast bijwerken
-  notes.forEach(([id, fid], i) => { const n = items.get(id); if (n) { n.order = i; n.folder = fid; } });
+  const toggled = [];
+  notes.forEach(([id, fid], i) => { const n = items.get(id); if (n) { if ((n.folder === TRASH) !== (fid === TRASH)) toggled.push(n); n.order = i; n.folder = fid; } });
+  for (const n of toggled) upsert(n); // naar de Prullenbak: van het canvas af; eruit: terug op het canvas
   renderFolderSelect();
   try { await api({ action: 'organize', folders: ids, notes }); poll(); }
   catch (err) { setSaved('Indeling opslaan mislukt: ' + err.message); }
