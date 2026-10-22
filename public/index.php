@@ -17,9 +17,9 @@ $panX = max(-1e7, min(1e7, $view[1])); $panY = max(-1e7, min(1e7, $view[2]));
 $snap = ($_COOKIE['snap'] ?? '') === '1';
 // Drempels voor 'afbeelding te groot' (vraag om te verkleinen), uit .env; ongeldige waarden vallen terug op de standaard
 $envInt = fn(string $k, int $default, int $min, int $max): int => max($min, min($max, (int)(Auth::env($k) ?: $default)));
-$allow = [ // welke soorten items er nog toegevoegd mogen worden (.env: ALLOW_NOTES, ALLOW_PICTURES, ALLOW_ARROW, ALLOW_CLOCK, ALLOW_COUNTDOWN, ALLOW_WORDART)
+$allow = [ // welke soorten items er nog toegevoegd mogen worden (.env: ALLOW_NOTES, ALLOW_PICTURES, ALLOW_SHAPE, ALLOW_CLOCK, ALLOW_COUNTDOWN, ALLOW_WORDART)
     'notes' => feature_enabled('NOTES'), 'pictures' => feature_enabled('PICTURES'),
-    'arrow' => feature_enabled('ARROW'), 'clock' => feature_enabled('CLOCK'), 'countdown' => feature_enabled('COUNTDOWN'), 'wordart' => feature_enabled('WORDART'),
+    'shape' => feature_enabled('SHAPE'), 'clock' => feature_enabled('CLOCK'), 'countdown' => feature_enabled('COUNTDOWN'), 'wordart' => feature_enabled('WORDART'),
 ];
 $boot = [
     'allow' => $allow,
@@ -68,7 +68,7 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
         <button type="button" role="menuitem" id="newNote"<?= $allow['notes'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🗒️</span> Notitie</button>
         <button type="button" role="menuitem" id="newImage"<?= $allow['pictures'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🖼️</span> Afbeelding</button>
         <button type="button" role="menuitem" id="newWordart" data-create="wordart"<?= $allow['wordart'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🌈</span> WordArt</button>
-        <button type="button" role="menuitem" id="newArrow" data-create="arrow"<?= $allow['arrow'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">➡️</span> Pijl</button>
+        <button type="button" role="menuitem" id="newShape" data-create="shape"<?= $allow['shape'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🔴</span> Vorm</button>
         <button type="button" role="menuitem" id="newClock" data-create="clock"<?= $allow['clock'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">🕐</span> Klok</button>
         <button type="button" role="menuitem" id="newCountdown" data-create="countdown"<?= $allow['countdown'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">📅</span> Afteller</button>
       </div>
@@ -224,20 +224,41 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
     </form>
   </dialog>
 
-  <dialog id="arrowDialog" aria-labelledby="arrowTitle">
-    <form id="arrowForm" method="dialog">
-      <h2 id="arrowTitle">Pijl</h2>
-      <div class="arrow-preview" id="arrowPreview"></div>
+  <dialog id="shapeDialog" aria-labelledby="shapeTitle">
+    <form id="shapeForm" method="dialog">
+      <h2 id="shapeTitle">Vorm</h2>
+      <div class="shape-preview" id="shapePreview"></div>
       <div class="field">
-        <span class="field-label">Ontwerp</span>
-        <div class="arrow-styles" id="arrowStyles"></div>
+        <span class="field-label">Vorm</span>
+        <div class="shape-kinds" id="shapeKinds"></div>
       </div>
-      <label>Kleur
-        <span class="swatches" id="arrowSwatches"></span>
-        <input type="color" name="color" value="#e53935">
+      <div class="field">
+        <span class="field-label">Kleurstelling</span>
+        <div class="shape-presets" id="shapePresets"></div>
+      </div>
+      <label>Tekst
+        <textarea name="text" rows="2" maxlength="300" placeholder="Tekst in de vorm (optioneel)"></textarea>
       </label>
+      <fieldset class="shape-group">
+        <legend>Rand</legend>
+        <label class="inline-check"><input type="checkbox" name="strokeOn"> Rand tonen</label>
+        <div class="shape-row"><label>Kleur<input type="color" name="strokeColor"></label>
+          <label>Dikte <output id="strokeWOut"></output><input type="range" name="strokeW" min="1" max="24" step="1"></label></div>
+      </fieldset>
+      <fieldset class="shape-group">
+        <legend>Vulling</legend>
+        <label class="inline-check"><input type="checkbox" name="fillOn"> Vulling tonen</label>
+        <div class="shape-row"><label>Kleur<input type="color" name="fillColor"></label>
+          <label>Transparantie <output id="fillTranspOut"></output><input type="range" name="fillTransp" min="0" max="100" step="5"></label></div>
+      </fieldset>
+      <fieldset class="shape-group">
+        <legend>Tekst</legend>
+        <div class="shape-row"><label>Kleur<input type="color" name="textColor"></label>
+          <label>Grootte <output id="textSizeOut"></output><input type="range" name="textSize" min="8" max="120" step="1"></label></div>
+      </fieldset>
+      <p class="error" id="shapeError" hidden></p>
       <menu>
-        <button type="button" id="arrowCancel">Annuleren</button>
+        <button type="button" id="shapeCancel">Annuleren</button>
         <button type="submit" class="primary">Opslaan</button>
       </menu>
     </form>

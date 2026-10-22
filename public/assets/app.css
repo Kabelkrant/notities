@@ -63,20 +63,20 @@ button:focus-visible, .note:focus-visible { outline: 2px solid var(--accent); ou
   box-shadow: 0 1px 3px rgba(0,0,0,.35); }
 @media (pointer: coarse) { .image .resize-handle { width: 26px; height: 26px; } }
 
-/* Pijlen: los zwevend, roteerbaar; greepjes (roteren, schalen, acties) alleen bij focus. Acties draaien tegen de pijl in, zodat ze rechtop blijven. */
-.arrow { position: absolute; margin: 0; cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; outline: none; transform: rotate(calc(var(--rot, 0) * 1deg)); }
-.arrow.dragging { cursor: grabbing; }
-.arrow .arrow-art { width: 100%; height: 100%; pointer-events: none; }
-.arrow .arrow-art svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.arrow:focus-within { outline: 1px dashed color-mix(in srgb, var(--text) 55%, transparent); outline-offset: 4px; }
-.arrow .rotate-handle, .arrow .resize-handle, .arrow .arrow-actions { visibility: hidden; position: absolute; }
-.arrow:focus-within .rotate-handle, .arrow:focus-within .resize-handle, .arrow:focus-within .arrow-actions { visibility: visible; }
-.arrow .rotate-handle { left: 50%; top: -34px; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: #fff; border: 2px solid var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.35); cursor: grab; touch-action: none; }
-.arrow .rotate-handle::after { content: ''; position: absolute; left: 50%; top: 100%; width: 2px; height: 14px; margin-left: -1px; background: var(--accent); }
-.arrow .resize-handle { right: -9px; bottom: -9px; width: 18px; height: 18px; border-radius: 4px; background: #fff; border: 2px solid var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.35); cursor: nwse-resize; touch-action: none; }
-.arrow .arrow-actions { left: 50%; top: calc(100% + 14px); display: flex; gap: 6px; transform: translateX(-50%) rotate(calc(var(--rot, 0) * -1deg)); }
-.arrow .arrow-actions button { width: 28px; height: 28px; padding: 0; line-height: 1; border: none; border-radius: 50%; background: rgba(255,255,255,.95); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
-@media (pointer: coarse) { .arrow .rotate-handle, .arrow .resize-handle { width: 26px; height: 26px; margin-left: -13px; } .arrow .resize-handle { margin-left: 0; right: -13px; bottom: -13px; } }
+/* Vormen: los zwevend, roteerbaar; greepjes (roteren, schalen, acties) alleen bij focus. Acties draaien tegen de vorm in, zodat ze rechtop blijven. */
+.shape { position: absolute; margin: 0; cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; outline: none; transform: rotate(calc(var(--rot, 0) * 1deg)); }
+.shape.dragging { cursor: grabbing; }
+.shape .shape-art { width: 100%; height: 100%; pointer-events: none; }
+.shape .shape-art svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.shape:focus-within { outline: 1px dashed color-mix(in srgb, var(--text) 55%, transparent); outline-offset: 4px; }
+.shape .rotate-handle, .shape .resize-handle, .shape .shape-actions { visibility: hidden; position: absolute; }
+.shape:focus-within .rotate-handle, .shape:focus-within .resize-handle, .shape:focus-within .shape-actions { visibility: visible; }
+.shape .rotate-handle { left: 50%; top: -34px; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: #fff; border: 2px solid var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.35); cursor: grab; touch-action: none; }
+.shape .rotate-handle::after { content: ''; position: absolute; left: 50%; top: 100%; width: 2px; height: 14px; margin-left: -1px; background: var(--accent); }
+.shape .resize-handle { right: -9px; bottom: -9px; width: 18px; height: 18px; border-radius: 4px; background: #fff; border: 2px solid var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.35); cursor: nwse-resize; touch-action: none; }
+.shape .shape-actions { left: 50%; top: calc(100% + 14px); display: flex; gap: 6px; transform: translateX(-50%) rotate(calc(var(--rot, 0) * -1deg)); }
+.shape .shape-actions button { width: 28px; height: 28px; padding: 0; line-height: 1; border: none; border-radius: 50%; background: rgba(255,255,255,.95); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+@media (pointer: coarse) { .shape .rotate-handle, .shape .resize-handle { width: 26px; height: 26px; margin-left: -13px; } .shape .resize-handle { margin-left: 0; right: -13px; bottom: -13px; } }
 /* WordArt: gedraagt zich als een pijl (slepen, schalen, roteren); greepjes alleen bij focus */
 .wordart { position: absolute; margin: 0; cursor: default; user-select: none; -webkit-user-select: none; touch-action: none; outline: none; transform: rotate(calc(var(--rot, 0) * 1deg)); }
 .wordart:focus-within { cursor: grab; }
@@ -101,12 +101,6 @@ button:focus-visible, .note:focus-visible { outline: 2px solid var(--accent); ou
 .wordart-shapes button { height: 4.2rem; }
 .wordart-styles button svg, .wordart-shapes button svg { display: block; width: 100%; height: 100%; }
 .wordart-styles button[aria-pressed="true"], .wordart-shapes button[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 1px; }
-.arrow-preview { display: grid; place-items: center; height: 5rem; border-radius: 10px; background: var(--bg); border: 1px solid color-mix(in srgb, var(--text) 15%, transparent); }
-.arrow-preview svg { width: 200px; height: 52px; }
-.arrow-styles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .4rem; }
-.arrow-styles button { height: 2.4rem; padding: .25rem; display: grid; place-items: center; color: var(--text); }
-.arrow-styles button svg { width: 100%; max-width: 56px; height: 22px; }
-.arrow-styles button[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* Klokken: vierkant item met een ronde (of afgeronde, digitale) klok; wijzerplaat en wijzers zijn aparte SVG's */
 .clock { position: absolute; margin: 0; cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; outline: none; }
@@ -266,3 +260,25 @@ input[type=color] { padding: 0; height: 2.2rem; width: 100%; }
 .bar-x .bar-thumb { top: 2px; bottom: 2px; min-width: 24px; }
 .bar-y .bar-thumb { left: 2px; right: 2px; min-height: 24px; }
 .bar:hover .bar-thumb { background: color-mix(in srgb, var(--text) 55%, transparent); }
+
+/* Vormen: tekst gecentreerd in de vorm; de marge volgt de vorm zodat de tekst binnen de vulling blijft */
+.shape .shape-text { position: absolute; inset: 6%; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; white-space: pre-wrap; overflow-wrap: anywhere; overflow: hidden; pointer-events: none; font-family: 'Segoe UI', Arial, sans-serif; }
+.shape[data-kind="circle"] .shape-text { inset: 15%; }
+.shape[data-kind="heart"] .shape-text { inset: 20% 17% 26%; }
+.shape[data-kind="arrow"] .shape-text { inset: 30% 14%; }
+.shape-preview { display: grid; place-items: center; height: 8.5rem; border-radius: 10px; background: var(--bg); border: 1px solid color-mix(in srgb, var(--text) 15%, transparent); overflow: hidden; }
+.shape-preview .shape-sample { position: relative; width: 180px; height: 110px; }
+.shape-preview .shape-sample svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.shape-kinds { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .4rem; }
+.shape-presets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .4rem; }
+.shape-kinds button, .shape-presets button { display: grid; place-items: center; padding: .3rem; height: 3rem; color: var(--text); }
+.shape-kinds button svg, .shape-presets button svg { display: block; width: 100%; height: 100%; }
+.shape-kinds button[aria-pressed="true"], .shape-presets button[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 1px; }
+#shapeDialog { max-height: 92dvh; overflow-y: auto; }
+#shapeDialog form { display: flex; flex-direction: column; gap: .7rem; }
+.shape-group { margin: 0; padding: .5rem .7rem .6rem; border: 1px solid color-mix(in srgb, var(--text) 18%, transparent); border-radius: 10px; display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
+.shape-group legend { padding: 0 .3rem; font-size: .85rem; color: var(--muted); }
+.shape-row { display: grid; grid-template-columns: 5.5rem 1fr; gap: .7rem; align-items: end; }
+.shape-row input[type=range] { padding: 0; height: 2.2rem; width: 100%; accent-color: var(--accent); }
+.shape-row output { float: right; color: var(--text); }
+#shapeForm textarea { min-height: 0; height: 3.6rem; resize: vertical; padding: .4rem .5rem; font: inherit; }

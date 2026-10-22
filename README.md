@@ -1,16 +1,16 @@
 # Kabelkrant Notities
 
-Een bord met notities, afbeeldingen, pijlen, klokken en WordArt die je vrij kunt verslepen. Geen database: alles staat in één JSON-bestand en een map met afbeeldingen.
+Een bord met notities, afbeeldingen, vormen, klokken en WordArt die je vrij kunt verslepen. Geen database: alles staat in één JSON-bestand en een map met afbeeldingen.
 
 ## Wat het kan
 - Notities met titel, kleur en Markdown (dik, cursief, `++onderstrepen++`, lijsten, `---` als lijn, links). De editor heeft een opmaakbalk, een linkknop (Ctrl+K; ook een URL plakken over geselecteerde tekst maakt `[tekst](url)`) en een emoji-kiezer van 6 × 5
 - Afbeeldingen (PNG, JPEG, GIF, WebP, AVIF; max 15 MB), los zwevend met behoud van transparantie, te schalen via de greep rechtsonder. Uploaden via menu + → Afbeelding of met Ctrl+V vanaf het klembord. Is een afbeelding groter dan de drempel (standaard 2000 px of 2 MB), dan vraagt de app of hij verkleind moet worden
-- Pijlen (menu + → Pijl): vrij te slepen, te schalen via de greep rechtsonder en in elke richting te roteren via het greepje boven de pijl (Shift = stappen van 15°; met de toets R draai je 15° rechtsom, Shift+R linksom). Vijf ontwerpen (blokpijl, omlijnd, lijn, gestreept, dubbel) en acht kleuren, in te stellen via ✏️ of dubbelklikken
+- Vormen (menu + → Vorm): rechthoek (met afgeronde hoeken), cirkel, pijl en hartje. Vrij te slepen, in breedte en hoogte te schalen via de greep rechtsonder (Shift = verhouding vasthouden) en in elke richting te roteren via het greepje boven de vorm (Shift = stappen van 15°; met de toets R draai je 15° rechtsom, Shift+R linksom). Tekst in de vorm staat horizontaal en verticaal gecentreerd. Via ✏️ of dubbelklikken kies je een vorm en een kleurstelling (acht voorgemaakte, bijvoorbeeld Blauw of Alleen omtrek) en pas je die aan: rand (aan/uit, kleur, dikte), vulling (aan/uit, kleur, transparantie) en tekst (kleur, grootte). De oude Pijl-widget is hierin opgegaan: bestaande pijlen worden vormen van het type pijl
 - Klokken (menu + → Klok): vier analoge stijlen (zilver, rood, neon, zwarte rand) en een rode digitale 7-segmentklok, met tijdzone, eigen label en optionele secondewijzer. De klok toont de tijd van het apparaat waarop je kijkt, omgerekend naar de gekozen tijdzone
 - Afteller (menu + → Afteller, 📅): telt af naar een einddatum (datum en tijd) in de toekomst, met een eigen label, bijvoorbeeld "Afspraak tandarts, nog 2 uur 25 minuten". Altijd twee eenheden (dagen en uren, uren en minuten, of minuten en seconden), in vijf skins (klassiek, digitaal, omklap, kleurrijk, krijtbord). De einddatum is onderin weer te geven (standaard aan). Is het moment bereikt, dan staat er een duimpje omhoog met "Voorbij". Het moment is een vaste tijd, dus alle apparaten tellen naar hetzelfde moment af
 - WordArt (menu + → WordArt): opgesmukte tekst van maximaal 60 tekens in acht stijlen (regenboog, chroom, goud 3D, neon, vuur, retro, strip, jungle) en vier vormen (recht, boog omhoog, boog omlaag, golf). Te slepen, vrij te schalen in breedte en hoogte (Shift houdt de verhouding vast) en in elke richting te roteren, net als een pijl. Gebruikt alleen systeemlettertypen
 - Meerdere items selecteren: Ctrl+klik op een item zet het aan of uit de selectie (Esc of klikken op het lege bord heft op). Geselecteerde items krijgen een blauwe rand en worden samen verplaatst
-- Slepen, ook met toetsenbord (pijltjes; Enter bewerkt, Delete verwijdert) en touch. Nieuwe items komen op de eerste vrije plek, zonder bestaande items te overlappen
+- Slepen, ook met toetsenbord (pijltjes; Enter bewerkt, Delete verwijdert) en touch (daar tik je een item eerst aan om het te kiezen; slepen vanaf een nog niet gekozen item verschuift het bord, zodat je niets per ongeluk wegsleept). Nieuwe items komen op de eerste vrije plek, zonder bestaande items te overlappen
 - Een grenzeloos bord: zoom met het scrollwiel of de pinch van een touchpad (5–400%, traploos, met een lichte veer en met de cursor als ankerpunt) of met de knoppen in de werkbalk. Verschuiven doe je door op het lege bord te slepen (of met de middelste muisknop); het handje verschijnt pas tijdens het slepen. Items mogen overal staan, ook op negatieve coördinaten; een 🎯 markeert de oorsprong (0, 0); klik erop voor uitleg. De scrollbalken volgen de buitenste items. Zoomniveau en positie worden in een cookie onthouden
 - Snap to grid (menu ☰): notities verplaatsen in stappen van 20 px, met een raster dat alleen tijdens het verplaatsen zichtbaar is; ook onthouden in een cookie
 - Gelijktijdig bewerken: wie een notitie opslaat die intussen door iemand anders is gewijzigd, krijgt een waarschuwing en kan bewust overschrijven
@@ -72,14 +72,14 @@ Kopieer `.env.example` naar `.env` (chmod 600; staat niet in git). De file bevat
 | `BACKUP_EVERY_HOURS` | Hoe vaak de app bij een wijziging een back-up maakt, zie *Back-ups*. `0` = uit. | 1 |
 | `BACKUP_KEEP` | Aantal back-ups dat bewaard blijft; oudere worden verwijderd. Tussen 1 en 10000. | 100 |
 | `ALLOW_UPDATE` | Of bijwerken via de app (menu ☰ → Over) is toegestaan, zie *Bijwerken*. | uit |
-| `ALLOW_NOTES`, `ALLOW_PICTURES`, `ALLOW_ARROW`, `ALLOW_CLOCK`, `ALLOW_COUNTDOWN`, `ALLOW_WORDART` | Welke soorten items er nog toegevoegd mogen worden, zie *Onderdelen aan- en uitzetten*. | notities aan, de rest uit |
+| `ALLOW_NOTES`, `ALLOW_PICTURES`, `ALLOW_SHAPE`, `ALLOW_CLOCK`, `ALLOW_COUNTDOWN`, `ALLOW_WORDART` | Welke soorten items er nog toegevoegd mogen worden, zie *Onderdelen aan- en uitzetten*. | notities aan, de rest uit |
 
 ## Inloggen
 De hele app zit achter één wachtwoord (geen gebruikersnaam). Het wachtwoord staat leesbaar als `APP_PASSWORD` in `.env` (niet in git, rechten 600). De naam in het inlogscherm en op het tabblad stel je in met `APP_NAME` in dezelfde file. Na inloggen onthoudt de browser dit 30 dagen via een ondertekende cookie (`kn_auth`); de sleutel is afgeleid van het wachtwoord, dus een nieuw wachtwoord in `.env` logt iedereen uit. Uitloggen kan via het menu. Notities, afbeeldingen en de API geven zonder login `401`. Foute pogingen worden vertraagd en beperkt tot 6 per minuut per IP.
 Gebruik HTTPS, anders reist het wachtwoord leesbaar over het netwerk.
 
 ## Onderdelen aan- en uitzetten
-Met `ALLOW_NOTES`, `ALLOW_PICTURES`, `ALLOW_ARROW`, `ALLOW_CLOCK`, `ALLOW_COUNTDOWN` en `ALLOW_WORDART` in `.env` bepaal je welke soorten items er nog **toegevoegd** mogen worden (`1`/`0`, ook `true`/`false`, `yes`/`no` en `on`/`off`). **Ontbreekt een regel, dan staat het onderdeel uit** (ook bij een onbegrijpelijke waarde); alleen `ALLOW_NOTES` staat dan juist aan. Bij een bestaande installatie moet je de regels dus toevoegen; in `.env.example` staan alleen notities en afbeeldingen aan en pijlen en klokken uit. Bij `0` verdwijnt de keuze uit het +-menu (en bij `ALLOW_PICTURES=0` werkt plakken van een afbeelding niet meer) en weigert de server het aanmaken. Items die al op het bord staan blijven gewoon zichtbaar en kun je nog verplaatsen, bewerken en verwijderen. Staat alles uit, dan verdwijnt de +-knop.
+Met `ALLOW_NOTES`, `ALLOW_PICTURES`, `ALLOW_SHAPE`, `ALLOW_CLOCK`, `ALLOW_COUNTDOWN` en `ALLOW_WORDART` in `.env` bepaal je welke soorten items er nog **toegevoegd** mogen worden (`1`/`0`, ook `true`/`false`, `yes`/`no` en `on`/`off`). **Ontbreekt een regel, dan staat het onderdeel uit** (ook bij een onbegrijpelijke waarde); alleen `ALLOW_NOTES` staat dan juist aan. Bij een bestaande installatie moet je de regels dus toevoegen; in `.env.example` staan alleen notities en afbeeldingen aan en vormen en klokken uit. Bij `0` verdwijnt de keuze uit het +-menu (en bij `ALLOW_PICTURES=0` werkt plakken van een afbeelding niet meer) en weigert de server het aanmaken. Items die al op het bord staan blijven gewoon zichtbaar en kun je nog verplaatsen, bewerken en verwijderen. Staat alles uit, dan verdwijnt de +-knop.
 
 ## Bijwerken
 Bijwerken via de app staat **standaard uit**: zet `ALLOW_UPDATE=1` in `.env` om het te gebruiken. Zonder die regel is Updaten uitgeschakeld en weigert de server het ook.
@@ -100,7 +100,7 @@ Menu ☰ → Over toont de huidige versie (commit) en de nieuwste op GitHub (`Ka
 | + (of =), − | bord | zoom ×1,5 of ÷1,5, om het midden van het bord |
 | Pijltjes (Shift = grotere stap) | geen item gefocust of geselecteerd | het bord verschuiven (80 px; Shift: 320 px) |
 | Pijltjes (Shift = grotere stap) | geselecteerd item | verplaatsen; met snap to grid in stappen van 20 px (Shift: 100 px) |
-| Enter | geselecteerd item | bewerken (notitie, pijl, klok, WordArt) |
+| Enter | geselecteerd item | bewerken (notitie, vorm, klok, WordArt) |
 | Delete | geselecteerd item | verwijderen (6 seconden ongedaan te maken) |
-| R, Shift+R | geselecteerde pijl of WordArt | 15° rechtsom, 15° linksom |
+| R, Shift+R | geselecteerde vorm of WordArt | 15° rechtsom, 15° linksom |
 | Escape | menu's, kiezers en dialogen | sluiten |

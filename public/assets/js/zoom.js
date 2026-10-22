@@ -140,13 +140,18 @@ board.addEventListener('pointerup', endTouch, true);
 board.addEventListener('pointercancel', endTouch, true);
 
 // Pannen: slepen op leeg bord (of met de middelste muisknop overal). Het handje verschijnt pas zodra er echt gesleept wordt.
+// Op touch pant ook slepen vanaf een item dat nog niet gefocust is (eerst tikken om het te kiezen, dan pas verplaatsen, zie drag.js);
+// een tik zonder slepen focust het item. Zo schuif je niet per ongeluk een item weg terwijl je het bord wilde scrollen.
 let pan = null;
+export const isFocused = (item) => item.matches(':focus-within');
 board.addEventListener('pointerdown', (e) => {
-  const middle = e.button === 1;
-  if (pinch.active || (!middle && (e.target !== board || e.button !== 0))) return;
-  pan = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false };
+  const middle = e.button === 1, item = e.target.closest?.('.item');
+  const touchPan = e.pointerType === 'touch' && item && !e.target.closest('button, a, .rotate-handle, .resize-handle')
+    && (!isFocused(item) || (item.classList.contains('note') && !e.target.closest('.note-head'))); // ook over de tekst van een notitie heen
+  if (pinch.active || (!middle && !(e.button === 0 && (e.target === board || touchPan)))) return;
+  pan = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false, tap: touchPan ? item : null };
   board.setPointerCapture(e.pointerId);
-  document.activeElement?.blur?.(); // preventDefault houdt de browser anders van het wegklikken van de focus af
+  if (!touchPan) document.activeElement?.blur?.(); // preventDefault houdt de browser anders van het wegklikken van de focus af
   e.preventDefault();
 });
 board.addEventListener('pointermove', (e) => {
@@ -161,6 +166,7 @@ board.addEventListener('pointermove', (e) => {
 });
 function endPan(e) {
   if (!pan || e.pointerId !== pan.id) return;
+  if (pan.tap && !pan.moved && e.type === 'pointerup') pan.tap.focus({ preventScroll: true }); // een tik kiest het item
   pan = null;
   board.classList.remove('panning');
   state.tx = Math.round(state.tx); state.ty = Math.round(state.ty);

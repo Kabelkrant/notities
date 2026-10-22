@@ -31,13 +31,20 @@ const MAX_TITLE = 255;
 const MAX_BODY = 20000;
 const MIN_IMAGE_SIZE = 40;
 const MAX_IMAGE_SIZE = 5000;
-const ARROW_STYLES = ['solid', 'outline', 'line', 'dashed', 'double']; // blokpijl, omlijnd, lijn, gestreept, dubbel
-const ARROW_DEFAULT_COLOR = '#E53935';
-const ARROW_DEFAULT_W = 180;
-const ARROW_DEFAULT_H = 48;
-const MIN_ARROW_LENGTH = 40;
-const MIN_ARROW_THICKNESS = 16;
-const MAX_ARROW_THICKNESS = 400;
+const SHAPE_KINDS = ['rect', 'circle', 'arrow', 'heart']; // rechthoek (afgerond), cirkel/ellips, pijl, hartje
+const SHAPE_DEFAULT_W = 200;
+const SHAPE_DEFAULT_H = 120;
+const MIN_SHAPE_SIZE = 30;
+const MAX_SHAPE_SIZE = 5000;
+const MAX_SHAPE_TEXT = 300;
+const MIN_SHAPE_TEXT_SIZE = 8;
+const MAX_SHAPE_TEXT_SIZE = 200;
+const MAX_SHAPE_STROKE = 40;
+const SHAPE_DEFAULTS = [ // standaard 'Blauw': vulling, rand en tekstkleur
+    'kind' => 'rect', 'text' => '', 'textColor' => '#FFFFFF', 'textSize' => 20,
+    'strokeOn' => true, 'strokeColor' => '#0D47A1', 'strokeW' => 3,
+    'fillOn' => true, 'fillColor' => '#1E88E5', 'fillTransp' => 0,
+];
 const CLOCK_STYLES = ['classic', 'red', 'neon', 'black', 'digital']; // zilver, rood, neon, zwarte rand, digitaal
 const CLOCK_DEFAULT_SIZE = 160;
 const MIN_CLOCK_SIZE = 80;
@@ -49,7 +56,7 @@ const MIN_COUNTDOWN_SIZE = 120;
 const MAX_COUNTDOWN_SIZE = 600;
 const MAX_COUNTDOWN_LABEL = 40;
 const MAX_COUNTDOWN_AHEAD = 100 * 365 * 86400; // streefdatum hooguit 100 jaar vooruit
-const ITEM_TYPES = ['note', 'image', 'arrow', 'clock', 'wordart', 'countdown']; // onbekende types (bijv. na een terugdraaiing) worden niet getoond
+const ITEM_TYPES = ['note', 'image', 'shape', 'clock', 'wordart', 'countdown']; // onbekende types (bijv. na een terugdraaiing) worden niet getoond
 const WORDART_STYLES = ['rainbow', 'chrome', 'gold', 'neon', 'fire', 'retro', 'comic', 'jungle'];
 const WORDART_SHAPES = ['straight', 'arch_up', 'arch_down', 'wave'];
 const WORDART_DEFAULT_TEXT = 'WordArt';
@@ -152,10 +159,14 @@ function note_to_array(array $r): array {
             'tz' => $r['tz'] ?? '', 'label' => $r['label'] ?? '', 'seconds' => (bool)($r['seconds'] ?? true),
         ];
     }
-    if ($base['type'] === 'arrow') {
+    if ($base['type'] === 'shape') {
+        $d = SHAPE_DEFAULTS;
         return $base + [
             'w' => (int)$r['w'], 'h' => (int)$r['h'], 'rot' => (int)($r['rot'] ?? 0),
-            'style' => $r['style'] ?? 'solid', 'color' => $r['color'] ?? ARROW_DEFAULT_COLOR,
+            'kind' => $r['kind'] ?? $d['kind'], 'text' => (string)($r['text'] ?? ''),
+            'textColor' => $r['textColor'] ?? $d['textColor'], 'textSize' => (int)($r['textSize'] ?? $d['textSize']),
+            'strokeOn' => (bool)($r['strokeOn'] ?? $d['strokeOn']), 'strokeColor' => $r['strokeColor'] ?? $d['strokeColor'], 'strokeW' => (int)($r['strokeW'] ?? $d['strokeW']),
+            'fillOn' => (bool)($r['fillOn'] ?? $d['fillOn']), 'fillColor' => $r['fillColor'] ?? $d['fillColor'], 'fillTransp' => (int)($r['fillTransp'] ?? $d['fillTransp']),
         ];
     }
     return $base + [
@@ -168,13 +179,23 @@ function note_to_array(array $r): array {
 
 /** @return list<array<string,mixed>> */
 function all_notes(): array {
-    $known = array_filter(store()->all(), fn($r) => in_array($r['type'] ?? 'note', ITEM_TYPES, true));
+    $rows = array_map(fn($r) => ($r['type'] ?? '') === 'arrow' ? shape_from_arrow($r) : $r, store()->all());
+    $known = array_filter($rows, fn($r) => in_array($r['type'] ?? 'note', ITEM_TYPES, true));
     return array_map('note_to_array', array_values($known));
+}
+
+/** De oude Pijl-widget bestaat niet meer: een bestaande pijl wordt een vorm 'pijl' met dezelfde afmetingen, rotatie en kleur. */
+function shape_from_arrow(array $r): array {
+    $color = valid_hex_color($r['color'] ?? null) ? $r['color'] : '#E53935';
+    $outline = ($r['style'] ?? 'solid') === 'outline';
+    return ['type' => 'shape', 'kind' => 'arrow', 'text' => '', 'textColor' => '#FFFFFF', 'textSize' => 20,
+        'strokeOn' => $outline, 'strokeColor' => $color, 'strokeW' => 3,
+        'fillOn' => true, 'fillColor' => $color, 'fillTransp' => $outline ? 86 : 0] + array_diff_key($r, ['color' => 1, 'style' => 1]);
 }
 
 function notes_version(array $notes): string {
     return md5(json_encode(array_map(
-        fn($n) => [$n['id'], $n['type'], $n['title'] ?? '', $n['body'] ?? '', $n['color'] ?? '', $n['file'] ?? '', $n['w'] ?? 0, $n['h'] ?? 0, $n['x'], $n['y'], $n['rot'] ?? 0, $n['style'] ?? '', $n['tz'] ?? '', $n['label'] ?? '', $n['seconds'] ?? null, $n['text'] ?? '', $n['shape'] ?? '', $n['target'] ?? 0, $n['showDate'] ?? null],
+        fn($n) => [$n['id'], $n['type'], $n['title'] ?? '', $n['body'] ?? '', $n['color'] ?? '', $n['file'] ?? '', $n['w'] ?? 0, $n['h'] ?? 0, $n['x'], $n['y'], $n['rot'] ?? 0, $n['style'] ?? '', $n['tz'] ?? '', $n['label'] ?? '', $n['seconds'] ?? null, $n['text'] ?? '', $n['shape'] ?? '', $n['target'] ?? 0, $n['showDate'] ?? null, $n['type'] === 'shape' ? $n : null],
         $notes
     )));
 }

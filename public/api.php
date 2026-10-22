@@ -88,17 +88,17 @@ function handle_upload(): never {
 
 /** Per itemtype het feature-vlaggetje (.env: ALLOW_<NAAM>) en de naam in meldingen; alleen soorten die via create_item worden aangemaakt. */
 const ITEM_FEATURES = [
-    'arrow' => ['ARROW', 'pijlen'], 'clock' => ['CLOCK', 'klokken'], 'wordart' => ['WORDART', 'WordArt'], 'countdown' => ['COUNTDOWN', 'aftellers'],
+    'shape' => ['SHAPE', 'vormen'], 'clock' => ['CLOCK', 'klokken'], 'wordart' => ['WORDART', 'WordArt'], 'countdown' => ['COUNTDOWN', 'aftellers'],
 ];
 
 /** Beginwaarden (zonder x/y) van een nieuw item van dit type; w en h mogen door de client worden meegegeven. */
 function item_defaults(string $type, array $in): array {
     return match ($type) {
-        'arrow' => [
-            'w' => clamp_int($in['w'] ?? ARROW_DEFAULT_W, MIN_ARROW_LENGTH, MAX_IMAGE_SIZE),
-            'h' => clamp_int($in['h'] ?? ARROW_DEFAULT_H, MIN_ARROW_THICKNESS, MAX_ARROW_THICKNESS),
-            'rot' => 0, 'style' => 'solid', 'color' => ARROW_DEFAULT_COLOR,
-        ],
+        'shape' => [
+            'w' => clamp_int($in['w'] ?? SHAPE_DEFAULT_W, MIN_SHAPE_SIZE, MAX_SHAPE_SIZE),
+            'h' => clamp_int($in['h'] ?? SHAPE_DEFAULT_H, MIN_SHAPE_SIZE, MAX_SHAPE_SIZE),
+            'rot' => 0,
+        ] + SHAPE_DEFAULTS,
         'clock' => [
             'w' => clamp_int($in['w'] ?? CLOCK_DEFAULT_SIZE, MIN_CLOCK_SIZE, MAX_CLOCK_SIZE),
             'style' => 'classic', 'tz' => '', 'label' => '', 'seconds' => true,
@@ -122,9 +122,12 @@ function item_schema(string $type): array {
     $text = fn(int $max) => ['text', $max];
     return ['x' => $int(-100000, 100000), 'y' => $int(-100000, 100000)] + match ($type) {
         'image' => ['w' => $int(MIN_IMAGE_SIZE, MAX_IMAGE_SIZE), 'h' => $int(MIN_IMAGE_SIZE, MAX_IMAGE_SIZE)],
-        'arrow' => [
-            'w' => $int(MIN_ARROW_LENGTH, MAX_IMAGE_SIZE), 'h' => $int(MIN_ARROW_THICKNESS, MAX_ARROW_THICKNESS), 'rot' => ['rot'],
-            'style' => ['enum', ARROW_STYLES, 'Onbekend pijlontwerp'], 'color' => ['color'],
+        'shape' => [
+            'w' => $int(MIN_SHAPE_SIZE, MAX_SHAPE_SIZE), 'h' => $int(MIN_SHAPE_SIZE, MAX_SHAPE_SIZE), 'rot' => ['rot'],
+            'kind' => ['enum', SHAPE_KINDS, 'Onbekende vorm'], 'text' => ['mtext', MAX_SHAPE_TEXT],
+            'textColor' => ['color'], 'textSize' => $int(MIN_SHAPE_TEXT_SIZE, MAX_SHAPE_TEXT_SIZE),
+            'strokeOn' => ['bool'], 'strokeColor' => ['color'], 'strokeW' => $int(1, MAX_SHAPE_STROKE),
+            'fillOn' => ['bool'], 'fillColor' => ['color'], 'fillTransp' => $int(0, 100),
         ],
         'clock' => [
             'w' => $int(MIN_CLOCK_SIZE, MAX_CLOCK_SIZE), 'style' => ['enum', CLOCK_STYLES, 'Onbekende klokstijl'],
@@ -160,6 +163,7 @@ function item_changes(array $cur, array $in): array {
                 if ($tz !== '' && (strlen($tz) > 64 || !preg_match('~^[A-Za-z0-9_+\-]+(/[A-Za-z0-9_+\-]+){0,2}$~', $tz))) respond(['error' => 'Ongeldige tijdzone'], 422);
                 return $tz;
             })(),
+            'mtext' => mb_substr(str_replace("\r", '', preg_replace('/[\x00-\x09\x0B-\x1F\x7F]/u', '', (string)$v)), 0, $spec[1]), // tekst met regeleinden
             'text' => (function () use ($v, $spec) {
                 $t = mb_substr(trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', (string)$v)), 0, $spec[1]);
                 if (($spec[2] ?? false) && $t === '') respond(['error' => 'Vul een tekst in'], 422);
@@ -269,6 +273,7 @@ try {
 
         case 'item_update':
             $cur = $found($store->find($id));
+            if (($cur['type'] ?? '') === 'arrow') $cur = $found($store->update($id, shape_from_arrow($cur))); // oude pijl: eerst omzetten naar een vorm
             respond(['note' => note_to_array($found($store->update($id, item_changes($cur, $in))))]);
 
         case 'update':

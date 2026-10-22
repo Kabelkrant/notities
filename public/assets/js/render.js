@@ -2,12 +2,12 @@ import { items, els, pendingDelete, selected } from './state.js';
 import { world } from './ui.js';
 import { refreshBars } from './zoom.js';
 import { needsLightText } from './color.js';
-import { arrowSvg } from './arrowshape.js';
+import { shapeSvg } from './shapeshape.js';
 import { clockMarkup, updateClock, timeIn } from './clockshape.js';
 import { countdownMarkup, updateCountdown, secondsLeft } from './countdownshape.js';
 import { wordartMarkup, wordartRatio } from './wordartshape.js';
 
-const sig = (n) => [n.type, n.title, n.body, n.color, n.file, n.x, n.y, n.w, n.h, n.rot, n.style, n.tz, n.label, n.seconds, n.text, n.shape, n.target, n.showDate, n.updated].join('\u0001');
+const sig = (n) => [n.type, n.title, n.body, n.color, n.file, n.x, n.y, n.w, n.h, n.rot, n.style, n.tz, n.label, n.seconds, n.text, n.shape, n.target, n.showDate, n.kind, n.strokeOn, n.strokeColor, n.strokeW, n.fillOn, n.fillColor, n.fillTransp, n.textColor, n.textSize, n.updated].join('\u0001');
 
 function buildItem(n) {
   const el = document.createElement(n.type === 'image' ? 'figure' : 'article');
@@ -44,15 +44,15 @@ function buildItem(n) {
         <button type="button" class="edit-btn" title="Stijl, tijdzone en label" aria-label="Stijl, tijdzone en label">✏️</button>
         <button type="button" class="delete-btn" title="Verwijderen" aria-label="Verwijderen">🗑️</button>
       </div>`;
-  } else if (n.type === 'arrow') {
-    el.className = 'item arrow';
-    el.setAttribute('aria-label', 'Pijl');
+  } else if (n.type === 'shape') {
+    el.className = 'item shape';
     el.innerHTML = `
-      <div class="arrow-art"></div>
+      <div class="shape-art"></div>
+      <div class="shape-text"></div>
       <span class="rotate-handle" aria-hidden="true" title="Roteren (Shift = stappen van 15°)"></span>
       <span class="resize-handle" aria-hidden="true"></span>
-      <div class="arrow-actions">
-        <button type="button" class="edit-btn" title="Ontwerp en kleur" aria-label="Ontwerp en kleur">✏️</button>
+      <div class="shape-actions">
+        <button type="button" class="edit-btn" title="Vorm, kleuren en tekst" aria-label="Vorm, kleuren en tekst">✏️</button>
         <button type="button" class="delete-btn" title="Verwijderen" aria-label="Verwijderen">🗑️</button>
       </div>`;
   } else if (n.type === 'image') {
@@ -113,11 +113,17 @@ export function paint(el, n) {
     updateClock(art, n, timeIn(n.tz, new Date()));
     return;
   }
-  if (n.type === 'arrow') {
+  if (n.type === 'shape') {
     el.style.width = n.w + 'px';
     el.style.height = n.h + 'px';
     el.style.setProperty('--rot', n.rot || 0);
-    el.querySelector('.arrow-art').innerHTML = arrowSvg(n.style, n.w, n.h, n.color);
+    el.dataset.kind = n.kind;
+    el.setAttribute('aria-label', n.text ? 'Vorm: ' + n.text : 'Vorm');
+    el.querySelector('.shape-art').innerHTML = shapeSvg(n, n.w, n.h);
+    const t = el.querySelector('.shape-text');
+    t.textContent = n.text;
+    t.style.color = n.textColor;
+    t.style.fontSize = n.textSize + 'px';
     return;
   }
   if (n.type === 'image') {
