@@ -43,3 +43,17 @@ export function shapeSvg(n, w, h) {
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${r1(w)} ${r1(h)}" preserveAspectRatio="none" aria-hidden="true">${body}</svg>`;
 }
+
+// Past de tekst in zijn vak: begint op de gekozen grootte en krimpt zo nodig, maar nooit onder de helft (minimaal 10 px; een kleinere
+// gekozen grootte blijft staan). Past het dan nog niet, dan blijft de tekst op die ondergrens en wordt hij afgekapt.
+// `box` is het tekstvak (.shape-text), het eerste kind de tekst zelf; gemeten in lay-outpixels, dus onafhankelijk van zoom en rotatie.
+export function fitText(box, size) {
+  const inner = box.firstElementChild, min = Math.min(size, Math.max(10, Math.round(size * 0.5)));
+  const fits = (px) => { box.style.fontSize = px + 'px'; return inner.offsetHeight <= box.clientHeight && inner.offsetWidth <= box.clientWidth; };
+  if (!inner.textContent || fits(size)) return size;
+  if (!fits(min)) return min;
+  let lo = min, hi = size;
+  while (hi - lo > 0.5) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
+  box.style.fontSize = lo + 'px';
+  return lo;
+}

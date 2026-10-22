@@ -263,6 +263,7 @@ input[type=color] { padding: 0; height: 2.2rem; width: 100%; }
 
 /* Vormen: tekst gecentreerd in de vorm; de marge volgt de vorm zodat de tekst binnen de vulling blijft */
 .shape .shape-text { position: absolute; inset: 6%; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; white-space: pre-wrap; overflow-wrap: anywhere; overflow: hidden; pointer-events: none; font-family: 'Segoe UI', Arial, sans-serif; font-weight: 600; }
+.shape .shape-text > span { display: block; max-width: 100%; }
 .shape[data-kind="circle"] .shape-text { inset: 15%; }
 .shape[data-kind="heart"] .shape-text { inset: 20% 17% 26%; }
 .shape[data-kind="arrow"] .shape-text { inset: 30% 14%; }

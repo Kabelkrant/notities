@@ -3,7 +3,7 @@ import { api } from './api.js';
 import { upsert } from './render.js';
 import { poll } from './sync.js';
 import { defineType } from './types.js';
-import { shapeSvg, SHAPE_KINDS, SHAPE_PRESETS, SHAPE_DEFAULT_W, SHAPE_DEFAULT_H, SHAPE_MIN } from './shapeshape.js';
+import { shapeSvg, fitText, SHAPE_KINDS, SHAPE_PRESETS, SHAPE_DEFAULT_W, SHAPE_DEFAULT_H, SHAPE_MIN } from './shapeshape.js';
 import { MAX_SIZE } from './state.js';
 
 // Dialoog met twee weergaven en een live voorbeeld dat in beide zichtbaar blijft:
@@ -22,7 +22,8 @@ let view = 1, snapshot = null;
 function renderPreview() {
   const c = choice, esc = c.text.replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
   preview.innerHTML = `<div class="shape shape-sample" data-kind="${c.kind}"><div class="shape-art">${shapeSvg(c, 180, 110)}</div>`
-    + `<div class="shape-text" style="color:${c.textColor};font-size:${c.textSize}px">${esc}</div></div>`;
+    + `<div class="shape-text" style="color:${c.textColor}"><span>${esc}</span></div></div>`;
+  fitText(preview.querySelector('.shape-text'), c.textSize);
   for (const b of kindBox.children) b.setAttribute('aria-pressed', String(b.dataset.kind === c.kind));
   const hit = SHAPE_PRESETS.findIndex((p) => samePreset(c, p));
   [...presetBox.children].forEach((b, i) => b.setAttribute('aria-pressed', String(i === (hit < 0 ? SHAPE_PRESETS.length : hit)))); // geen kleurstelling: dan is het 'Aangepast'

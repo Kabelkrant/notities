@@ -2,7 +2,7 @@ import { items, els, pendingDelete, selected } from './state.js';
 import { world } from './ui.js';
 import { refreshBars } from './zoom.js';
 import { needsLightText } from './color.js';
-import { shapeSvg } from './shapeshape.js';
+import { shapeSvg, fitText } from './shapeshape.js';
 import { clockMarkup, updateClock, timeIn } from './clockshape.js';
 import { countdownMarkup, updateCountdown, secondsLeft } from './countdownshape.js';
 import { wordartMarkup, wordartRatio } from './wordartshape.js';
@@ -48,7 +48,7 @@ function buildItem(n) {
     el.className = 'item shape';
     el.innerHTML = `
       <div class="shape-art"></div>
-      <div class="shape-text"></div>
+      <div class="shape-text"><span></span></div>
       <span class="rotate-handle" aria-hidden="true" title="Roteren (Shift = stappen van 15°)"></span>
       <span class="resize-handle" aria-hidden="true"></span>
       <div class="shape-actions">
@@ -120,10 +120,13 @@ export function paint(el, n) {
     el.dataset.kind = n.kind;
     el.setAttribute('aria-label', n.text ? 'Vorm: ' + n.text : 'Vorm');
     el.querySelector('.shape-art').innerHTML = shapeSvg(n, n.w, n.h);
-    const t = el.querySelector('.shape-text');
-    t.textContent = n.text;
+    const t = el.querySelector('.shape-text'), fit = [n.text, n.textSize, n.w, n.h, n.kind].join('\u0001');
     t.style.color = n.textColor;
-    t.style.fontSize = n.textSize + 'px';
+    if (t._fit !== fit) { // de tekst krimpt mee als hij niet past; alleen opnieuw meten bij een andere tekst, grootte of vorm
+      t._fit = fit;
+      t.firstElementChild.textContent = n.text;
+      fitText(t, n.textSize);
+    }
     return;
   }
   if (n.type === 'image') {
