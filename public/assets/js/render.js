@@ -7,7 +7,7 @@ import { clockMarkup, updateClock, timeIn } from './clockshape.js';
 import { countdownMarkup, updateCountdown, secondsLeft } from './countdownshape.js';
 import { wordartMarkup, wordartRatio } from './wordartshape.js';
 
-const sig = (n) => [n.type, n.title, n.body, n.color, n.file, n.x, n.y, n.w, n.h, n.rot, n.style, n.tz, n.label, n.seconds, n.text, n.shape, n.target, n.showDate, n.kind, n.strokeOn, n.strokeColor, n.strokeW, n.fillOn, n.fillColor, n.fillTransp, n.textColor, n.textSize, n.order, n.folder, n.updated].join('\u0001');
+const sig = (n) => [n.type, n.title, n.body, n.color, n.file, n.x, n.y, n.w, n.h, n.rot, n.style, n.tz, n.label, n.seconds, n.text, n.shape, n.target, n.showDate, n.kind, n.strokeOn, n.strokeColor, n.strokeW, n.fillOn, n.fillColor, n.fillTransp, n.textColor, n.textSize, n.order, n.folder, n.edited, n.updated].join('\u0001');
 
 function buildItem(n) {
   const el = document.createElement(n.type === 'image' ? 'figure' : 'article');

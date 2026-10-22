@@ -308,14 +308,18 @@ body.mode-notes .board { visibility: hidden; } /* blijft bestaan (maten, plaatsi
 .na-list-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: 1.1rem 1.25rem .8rem; }
 .na-list-head h2 { margin: 0; font-size: 1.15rem; }
 .na-list { position: relative; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: .5rem; padding: .4rem 1.1rem 1.5rem; overscroll-behavior: contain; }
-.na-item { position: relative; flex: none; display: flex; align-items: center; gap: .3rem; padding: .4rem .7rem .4rem .2rem; border-radius: 9px; box-shadow: var(--shadow); color: #1d1f27; cursor: pointer; user-select: none; -webkit-user-select: none; filter: var(--note-filter); }
-.na-item.on-dark { color: #fff; }
-.na-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.na-item.active { outline: 3px solid var(--accent); outline-offset: 1px; }
-.na-title { flex: 1; min-width: 0; font-size: .92rem; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.na-item { position: relative; flex: none; display: flex; align-items: center; gap: .6rem; cursor: pointer; user-select: none; -webkit-user-select: none; }
+.na-tile { flex: 1; min-width: 0; display: flex; align-items: center; gap: .3rem; padding: .4rem .7rem .4rem .2rem; border-radius: 9px; box-shadow: var(--shadow); color: #1d1f27; filter: var(--note-filter); }
+.na-item.on-dark .na-tile { color: #fff; }
+.na-item:focus-visible { outline: none; }
+.na-item:focus-visible .na-tile { outline: 2px solid var(--accent); outline-offset: 2px; }
+.na-item.active .na-tile { outline: 3px solid var(--accent); outline-offset: 1px; }
+.na-time { flex: none; min-width: 3.2rem; max-width: 5.2rem; text-align: right; font-size: .75rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* altijd één regel; te lang wordt ingekort met … */
+.na-title { flex: 1; min-width: 0; font-size: .92rem; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* de naam blijft op één regel; te lang wordt ingekort met … (volledige naam in de tooltip) */
 .na-grip { flex: none; width: 1.3rem; text-align: center; opacity: .4; cursor: grab; touch-action: none; letter-spacing: -.1em; }
 .na-item:hover .na-grip { opacity: .75; }
-.na-item.dragging { z-index: 2; cursor: grabbing; opacity: .92; box-shadow: 0 10px 26px rgba(0,0,0,.35); pointer-events: none; }
+.na-item.dragging { z-index: 2; cursor: grabbing; opacity: .92; pointer-events: none; }
+.na-item.dragging .na-tile { box-shadow: 0 10px 26px rgba(0,0,0,.35); }
 .na-list.reordering, .na-list.reordering * { cursor: grabbing; }
 .na-drop-line { position: absolute; left: .75rem; right: .75rem; height: 4px; margin-top: -2px; border-radius: 2px; background: var(--accent); pointer-events: none; }
 .na-editor-pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--surface); } /* wit (donker thema: het donkere vlak) */
@@ -354,7 +358,6 @@ body.mode-notes .board { visibility: hidden; } /* blijft bestaan (maten, plaatsi
 .na-fhead .na-grip { cursor: grab; }
 .na-ficon { flex: none; width: 1.4rem; text-align: center; font-size: 1.05rem; }
 .na-fname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.na-fcount { flex: none; font-size: .78rem; font-weight: 400; color: var(--muted); }
 .na-factions { flex: none; display: inline-flex; gap: .2rem; opacity: 0; }
 .na-fhead:hover .na-factions, .na-fhead:focus-within .na-factions { opacity: 1; }
 @media (pointer: coarse) { .na-factions { opacity: .8; } }
@@ -371,3 +374,6 @@ body.mode-notes .board { visibility: hidden; } /* blijft bestaan (maten, plaatsi
 .notes-app.na-resizing { cursor: col-resize; user-select: none; -webkit-user-select: none; }
 /* Actieve editor: een zachte rand in plaats van de dikke standaard-rand van de browser */
 .na-body textarea:focus, .na-editor-head input:focus { outline: none; border-color: color-mix(in srgb, var(--accent) 45%, transparent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 16%, transparent); }
+
+/* Notities in de lijst staan op bijwerkdatum; slepen kan alleen naar een andere map, die oplicht */
+.na-folder.na-drop-target .na-fhead { background: color-mix(in srgb, var(--accent) 20%, transparent); outline: 2px dashed color-mix(in srgb, var(--accent) 70%, transparent); outline-offset: -2px; }

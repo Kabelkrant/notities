@@ -177,6 +177,7 @@ function note_to_array(array $r): array {
         'html' => render_body($r['body']),
         'color' => $r['color'],
         'order' => (int)($r['order'] ?? -$r['id']), // volgorde in de notitie-app (standaard nieuwste eerst); los van positie en stapelvolgorde op het canvas
+        'edited' => date('c', strtotime((string)($r['edited'] ?? $r['updated'])) ?: time()), // laatste inhoudelijke bewerking (oude notities: het laatste wijzigingsmoment)
         'folder' => (int)($r['folder'] ?? 0),       // map in de notitie-app; 0 = (niet ingedeeld), -1 = Prullenbak
     ];
 }
@@ -203,7 +204,7 @@ function all_folders(): array {
 
 function notes_version(array $notes, array $folders = []): string {
     return md5(json_encode([$folders, array_map(
-        fn($n) => [$n['id'], $n['type'], $n['title'] ?? '', $n['body'] ?? '', $n['color'] ?? '', $n['file'] ?? '', $n['w'] ?? 0, $n['h'] ?? 0, $n['x'], $n['y'], $n['rot'] ?? 0, $n['style'] ?? '', $n['tz'] ?? '', $n['label'] ?? '', $n['seconds'] ?? null, $n['text'] ?? '', $n['shape'] ?? '', $n['target'] ?? 0, $n['showDate'] ?? null, $n['type'] === 'shape' ? $n : null, $n['order'] ?? null, $n['folder'] ?? null],
+        fn($n) => [$n['id'], $n['type'], $n['title'] ?? '', $n['body'] ?? '', $n['color'] ?? '', $n['file'] ?? '', $n['w'] ?? 0, $n['h'] ?? 0, $n['x'], $n['y'], $n['rot'] ?? 0, $n['style'] ?? '', $n['tz'] ?? '', $n['label'] ?? '', $n['seconds'] ?? null, $n['text'] ?? '', $n['shape'] ?? '', $n['target'] ?? 0, $n['showDate'] ?? null, $n['type'] === 'shape' ? $n : null, $n['order'] ?? null, $n['folder'] ?? null, $n['edited'] ?? null],
         $notes
     )]));
 }

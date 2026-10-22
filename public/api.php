@@ -268,7 +268,7 @@ try {
             check_capacity(false);
             // nieuwe notities komen bovenaan de lijst van de notitie-app (volgnummer lager dan alle bestaande)
             $order = array_reduce($store->all(), fn($m, $r) => ($r['type'] ?? 'note') === 'note' ? min($m, (int)($r['order'] ?? -$r['id'])) : $m, PHP_INT_MAX);
-            $n = $store->create(['type' => 'note', 'title' => $t, 'body' => $b, 'color' => $c, 'x' => $coord('x'), 'y' => $coord('y'), 'order' => $order === PHP_INT_MAX ? 0 : $order - 1, 'folder' => in_array((int)($in['folder'] ?? 0), array_column($store->folders(), 'id'), true) ? (int)$in['folder'] : 0]);
+            $n = $store->create(['type' => 'note', 'title' => $t, 'body' => $b, 'color' => $c, 'x' => $coord('x'), 'y' => $coord('y'), 'edited' => date('c'), 'order' => $order === PHP_INT_MAX ? 0 : $order - 1, 'folder' => in_array((int)($in['folder'] ?? 0), array_column($store->folders(), 'id'), true) ? (int)$in['folder'] : 0]);
             respond(['note' => note_to_array($n)], 201);
 
         case 'create_item':
@@ -286,7 +286,11 @@ try {
 
         case 'update':
             [$t, $b, $c] = $fields();
-            if (($found($store->find($id))['type'] ?? 'note') !== 'note') respond(['error' => 'Alleen notities zijn te bewerken'], 400);
+            $cur = $found($store->find($id));
+            if (($cur['type'] ?? 'note') !== 'note') respond(['error' => 'Alleen notities zijn te bewerken'], 400);
+            // 'edited' is het moment van de laatste inhoudelijke bewerking (titel, tekst of kleur); verplaatsen, indelen en ordenen tellen niet mee
+            $changes = ['title' => $t, 'body' => $b, 'color' => $c];
+            if (($cur['title'] ?? '') !== $t || ($cur['body'] ?? '') !== $b || ($cur['color'] ?? '') !== $c) $changes['edited'] = date('c');
             // Conflictcontrole: de client geeft de inhoud mee waarop zijn bewerking gebaseerd is (verplaatsen telt niet mee).
             $expect = null;
             if (empty($in['force']) && is_array($in['base'] ?? null)) {
@@ -294,7 +298,7 @@ try {
                 foreach (['title', 'body', 'color'] as $k) $expect[$k] = (string)($in['base'][$k] ?? '');
             }
             try {
-                $n = $store->update($id, ['title' => $t, 'body' => $b, 'color' => $c], $expect);
+                $n = $store->update($id, $changes, $expect);
             } catch (ConflictException) {
                 respond(['error' => 'Deze notitie is ondertussen door iemand anders gewijzigd. Klik nogmaals op Opslaan om die wijziging te overschrijven, of annuleer om eerst de nieuwe versie te zien.'], 409);
             }

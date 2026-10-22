@@ -37,7 +37,9 @@ const saveCollapsed = () => { try { localStorage.setItem('na-collapsed', JSON.st
 const folderIds = () => state.folders.map((f) => f.id);
 const folderOf = (n) => folderIds().includes(n.folder) ? n.folder : GENERAL; // een onbekende map telt als (niet ingedeeld)
 const gone = (id) => els.get(id)?.hidden || hiddenIds.has(id); // tijdelijk weggehaald (definitief verwijderen loopt)
-const visibleNotes = () => [...items.values()].filter((n) => n.type === 'note' && !gone(n.id)).sort((a, b) => a.order - b.order || b.id - a.id);
+const editedAt = (n) => Date.parse(n.edited) || 0;
+// Binnen een map staan de notities op laatst inhoudelijk bijgewerkt, de nieuwste bovenaan (geen handmatige volgorde)
+const visibleNotes = () => [...items.values()].filter((n) => n.type === 'note' && !gone(n.id)).sort((a, b) => editedAt(b) - editedAt(a) || b.id - a.id);
 const section = (fid) => list.querySelector(`.na-folder[data-folder="${fid}"]`);
 const itemEl = (id) => list.querySelector(`.na-item[data-id="${id}"]`);
 const sections = () => [...list.querySelectorAll('.na-folder')];
@@ -83,13 +85,28 @@ splitter.addEventListener('keydown', (e) => {
 addEventListener('resize', () => { if (customSplit && app.clientWidth) setLeft(leftWidth()); }); // een kleiner venster: de lijst krimpt mee, de editor houdt zijn minimale breedte
 window.addEventListener('mode:changed', () => { if (customSplit && app.clientWidth) setLeft(leftWidth()); });
 
+/* ---------- Laatste bewerking: vandaag de tijd, gisteren 'Gisteren', eerder de datum ---------- */
+const MONTHS = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+function formatEdited(iso) {
+  const d = new Date(iso);
+  if (!iso || isNaN(d)) return '';
+  const now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate()), yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (d >= today) return d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+  if (d >= yesterday) return 'Gisteren';
+  return d.getFullYear() === now.getFullYear() ? `${d.getDate()} ${MONTHS[d.getMonth()]}` : String(d.getFullYear()); // een eerder jaar: alleen het jaartal
+}
+// De volledige datum voor de statusbalk onder de editor, bijvoorbeeld 'Laatst bijgewerkt: 22 oktober 2026 om 20:28'
+const lastUpdated = (n) => n.edited && !isNaN(new Date(n.edited)) ? 'Laatst bijgewerkt: ' + new Date(n.edited).toLocaleString('nl-NL', { dateStyle: 'long', timeStyle: 'short' }) : '';
+setInterval(() => { for (const el of list.querySelectorAll('.na-item')) { const n = items.get(Number(el.dataset.id)); if (n) el.querySelector('.na-time').textContent = formatEdited(n.edited); } }, 60000); // 'vandaag' wordt vanzelf 'Gisteren'
+
 /* ---------- Boom ---------- */
 function buildFolder(f) {
   const sec = document.createElement('section');
   sec.className = 'na-folder'; sec.dataset.folder = f.id;
   sec.innerHTML = `<div class="na-fhead" tabindex="0" role="treeitem">
       <span class="na-grip" aria-hidden="true" title="Sleep om de map te verplaatsen">⋮⋮</span>
-      <span class="na-ficon" aria-hidden="true">📂</span><span class="na-fname"></span><span class="na-fcount"></span>
+      <span class="na-ficon" aria-hidden="true">📂</span><span class="na-fname"></span>
       <span class="na-factions"><button type="button" class="na-fedit" title="Naam wijzigen" aria-label="Naam wijzigen">✏️</button><button type="button" class="na-fdel" title="Map verwijderen" aria-label="Map verwijderen">🗑️</button></span>
     </div><div class="na-fnotes" role="group"></div>`;
   if (f.id <= GENERAL) sec.querySelector('.na-factions').hidden = true; // de systeemmappen (niet ingedeeld) en Prullenbak blijven altijd bestaan
@@ -99,12 +116,30 @@ function buildFolder(f) {
 function buildItem(n) {
   const el = document.createElement('div');
   el.className = 'na-item'; el.dataset.id = n.id; el.tabIndex = 0; el.setAttribute('role', 'treeitem');
-  el.innerHTML = '<span class="na-grip" aria-hidden="true" title="Sleep om de volgorde te wijzigen">⋮⋮</span><span class="na-title"></span>';
+  el.innerHTML = '<div class="na-tile"><span class="na-grip" aria-hidden="true" title="Sleep om de volgorde te wijzigen">⋮⋮</span><span class="na-title"></span></div><span class="na-time"></span>';
   return el;
 }
 
+// Verandert de lijst (een notitie is bijgewerkt en schuift naar boven, een map klapt in of uit), dan glijden de blokjes naar hun nieuwe plek:
+// we onthouden waar alles stond, bouwen de lijst opnieuw op en laten elk blokje van zijn oude plek naar de nieuwe schuiven.
+const ROW = '.na-item, .na-fhead';
+const rowKey = (el) => el.classList.contains('na-item') ? 'n' + el.dataset.id : 'f' + el.closest('.na-folder').dataset.folder;
 function renderList() {
   if (drag?.moved) return; // niet midden in het slepen
+  const animate = app.clientWidth > 0 && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const was = new Map();
+  if (animate) for (const el of list.querySelectorAll(ROW)) if (el.offsetParent !== null) was.set(rowKey(el), el.getBoundingClientRect().top);
+  renderListNow();
+  if (!animate) return;
+  for (const el of list.querySelectorAll(ROW)) {
+    const from = was.get(rowKey(el));
+    if (from === undefined || el.offsetParent === null) continue;
+    const dy = from - el.getBoundingClientRect().top;
+    if (Math.abs(dy) > 1) el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }], { duration: 320, easing: 'cubic-bezier(.2, .8, .2, 1)' });
+  }
+}
+
+function renderListNow() {
   const notes = visibleNotes(), byFolder = new Map(state.folders.map((f) => [f.id, []]));
   for (const n of notes) byFolder.get(folderOf(n)).push(n);
   const keepSec = new Map(sections().map((s) => [Number(s.dataset.folder), s]));
@@ -119,15 +154,21 @@ function renderList() {
     head.setAttribute('aria-expanded', String(!isCollapsed));
     sec.querySelector('.na-ficon').textContent = f.id === TRASH ? '🗑️' : isCollapsed ? '📁' : '📂'; // dichte of geopende map; de Prullenbak heeft een eigen icoon
     if (!sec.querySelector('.na-rename')) sec.querySelector('.na-fname').textContent = f.name;
-    sec.querySelector('.na-fcount').textContent = byFolder.get(f.id).length;
+    const count = byFolder.get(f.id).length; // het aantal staat alleen in de tooltip bij de naam
+    sec.querySelector('.na-fname').title = count === 0 ? 'Geen notities' : count === 1 ? '1 notitie' : `${count} notities`;
     const box = sec.querySelector('.na-fnotes');
     byFolder.get(f.id).forEach((n, j) => {
       let el = keepItems.get(n.id);
       keepItems.delete(n.id);
       if (!el) el = buildItem(n);
-      el.style.background = n.color;
+      el.querySelector('.na-tile').style.background = n.color;
       el.classList.toggle('on-dark', needsLightText(n.color));
-      el.querySelector('.na-title').textContent = n.title;
+      const title = el.querySelector('.na-title');
+      title.textContent = n.title;
+      title.title = n.title; // de volledige naam, voor als hij is ingekort
+      const time = el.querySelector('.na-time');
+      time.textContent = formatEdited(n.edited);
+      time.title = lastUpdated(n);
       el.classList.toggle('active', n.id === activeId);
       el.setAttribute('aria-selected', String(n.id === activeId));
       if (box.children[j] !== el) box.insertBefore(el, box.children[j] || null);
@@ -163,7 +204,7 @@ async function select(id, { focus = false } = {}) {
   activeId = id; dirty = false; conflict = false;
   conflictBox.hidden = true;
   fill(n);
-  setSaved('');
+  setSaved(lastUpdated(n)); // bij het openen: wanneer de notitie voor het laatst is bijgewerkt; daarna meldt dezelfde plek het opslaan
   editorBox.hidden = false; empty.hidden = true;
   app.classList.add('na-open'); // smal scherm: toon de editor in plaats van de lijst
   if (collapsed.delete(folderOf(n))) { saveCollapsed(); renderList(); } // de map van de gekozen notitie klapt open
@@ -317,6 +358,7 @@ window.addEventListener('notes:changed', () => {
     if (!dirty && !saving && base && (n.title !== base.title || n.body !== base.body || n.color !== base.color)) { // door iemand anders gewijzigd
       const s = body.selectionStart, e = body.selectionEnd;
       fill(n);
+      setSaved(lastUpdated(n));
       body.setSelectionRange(Math.min(s, body.value.length), Math.min(e, body.value.length));
     }
   });
@@ -372,16 +414,13 @@ list.addEventListener('keydown', (e) => {
   } else if (head && e.key === 'F2') startRename(head.closest('.na-folder'));
 });
 
-function moveNote(el, dir) { // binnen de map; aan de rand door naar de naastgelegen map
-  const sec = el.closest('.na-folder'), sibs = itemsOf(sec), i = sibs.indexOf(el), all = sections(), s = all.indexOf(sec);
-  if (dir > 0 && sibs[i + 1]) sibs[i + 1].after(el);
-  else if (dir < 0 && sibs[i - 1]) sibs[i - 1].before(el);
-  else if (dir > 0 && all[s + 1]) all[s + 1].querySelector('.na-fnotes').prepend(el);
-  else if (dir < 0 && all[s - 1]) all[s - 1].querySelector('.na-fnotes').append(el);
-  else return;
-  const to = el.closest('.na-folder');
-  if (collapsed.delete(Number(to.dataset.folder))) { saveCollapsed(); to.classList.remove('collapsed'); }
-  el.focus(); saveLayout();
+function moveNote(el, dir) { // Alt+pijl omhoog of omlaag: naar de vorige of volgende map (binnen een map staat de volgorde vast op bijwerkdatum)
+  const all = sections(), to = all[all.indexOf(el.closest('.na-folder')) + dir];
+  if (!to) return;
+  to.querySelector('.na-fnotes').appendChild(el);
+  if (collapsed.delete(Number(to.dataset.folder))) saveCollapsed();
+  saveLayout(); renderList();
+  itemEl(Number(el.dataset.id))?.focus();
 }
 function moveFolder(sec, dir) {
   const all = sections(), i = all.indexOf(sec), other = all[i + dir];
@@ -413,26 +452,22 @@ list.addEventListener('pointermove', (e) => {
     drag.el.classList.add('dragging');
     if (drag.kind === 'folder') drag.el.classList.add('drag-collapsed'); // een map sleep je zonder zijn notities
     list.classList.add('reordering');
-    list.appendChild(dropLine);
+    if (drag.kind === 'folder') list.appendChild(dropLine); // alleen mappen hebben een invoeglijn; een notitie landt in een map
   }
   const rect = list.getBoundingClientRect();
   if (e.clientY < rect.top + 36) list.scrollTop -= 14; else if (e.clientY > rect.bottom - 36) list.scrollTop += 14; // automatisch scrollen aan de randen
   drag.el.style.transform = `translateY(${e.clientY - drag.y + (list.scrollTop - drag.scroll0)}px)`;
   drag.target = drag.kind === 'note' ? noteTarget(e.clientY) : folderTarget(e.clientY);
-  placeLine(drag.target.lineY);
+  if (drag.kind === 'folder') placeLine(drag.target.lineY);
+  else for (const s of sections()) s.classList.toggle('na-drop-target', s === drag.target.sec && s !== drag.el.closest('.na-folder')); // de map waar de notitie in komt
 });
 
-// Waar landt het gesleepte item? Geeft de map (of de plek tussen mappen), de positie en de hoogte van de invoeglijn.
+// Waar landt het gesleepte item? Een notitie landt in de map onder de aanwijzer (de volgorde volgt de bijwerkdatum); een map tussen twee mappen.
 function noteTarget(y) {
   const secs = sections();
   let sec = secs.find((s) => { const r = s.getBoundingClientRect(); return y >= r.top && y <= r.bottom; });
   if (!sec) sec = secs.reduce((best, s) => { const r = s.getBoundingClientRect(), d = Math.min(Math.abs(y - r.top), Math.abs(y - r.bottom)); return !best || d < best.d ? { s, d } : best; }, null).s;
-  const others = sec.classList.contains('collapsed') ? [] : itemsOf(sec).filter((o) => o !== drag.el);
-  const idx = others.findIndex((o) => { const r = o.getBoundingClientRect(); return y < r.top + r.height / 2; });
-  const at = idx < 0 ? others.length : idx;
-  const head = sec.querySelector('.na-fhead').getBoundingClientRect();
-  const lineY = !others.length ? head.bottom + 3 : at < others.length ? others[at].getBoundingClientRect().top - 5 : others[others.length - 1].getBoundingClientRect().bottom + 3;
-  return { sec, others, at, lineY };
+  return { sec };
 }
 function folderTarget(y) {
   const others = sections().filter((s) => s !== drag.el);
@@ -448,11 +483,17 @@ function endDrag(e, cancel) {
   if (!d.moved) return;
   d.el.classList.remove('dragging', 'drag-collapsed'); d.el.style.transform = '';
   list.classList.remove('reordering'); dropLine.remove();
+  for (const s of sections()) s.classList.remove('na-drop-target');
   suppressClick = true; setTimeout(() => { suppressClick = false; }, 0);
   const t = d.target;
   if (cancel || !t) return;
-  if (d.kind === 'note') (t.sec.querySelector('.na-fnotes')).insertBefore(d.el, t.others[t.at] || null);
-  else list.insertBefore(d.el, t.others[t.at] || null);
+  if (d.kind === 'note') {
+    if (t.sec === d.el.closest('.na-folder')) return; // zelfde map: er verandert niets
+    t.sec.querySelector('.na-fnotes').appendChild(d.el);
+    saveLayout(); renderList(); // de notitie glijdt naar zijn plek op bijwerkdatum
+    return;
+  }
+  list.insertBefore(d.el, t.others[t.at] || null);
   saveLayout();
 }
 list.addEventListener('pointerup', (e) => endDrag(e, false));
