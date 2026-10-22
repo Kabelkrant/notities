@@ -225,7 +225,7 @@ addEventListener('blur', () => endAuto());
 // (die verplaatsen met de pijltjes, zie actions.js) en je niet in een invoerveld, knop of dialoog zit.
 const KEY_STEP = 80, KEY_STEP_BIG = 320;
 addEventListener('keydown', (e) => {
-  if (!e.key.startsWith('Arrow') || e.ctrlKey || e.metaKey || e.altKey || selected.size) return;
+  if (state.mode === 'notes' || !e.key.startsWith('Arrow') || e.ctrlKey || e.metaKey || e.altKey || selected.size) return;
   if (e.target.closest?.('.item, input, textarea, select, button, [contenteditable]') || document.querySelector('dialog[open]')) return;
   e.preventDefault();
   const step = e.shiftKey ? KEY_STEP_BIG : KEY_STEP;
@@ -266,7 +266,7 @@ zoomIn.addEventListener('click', stepIn);
 // Toetsen + en - (ook = en de numerieke toetsen): zoom ×1,5 of ÷1,5, om het midden van het bord
 addEventListener('keydown', (e) => {
   const inn = e.key === '+' || e.key === '=', out = e.key === '-' || e.key === '_';
-  if (!(inn || out) || e.ctrlKey || e.metaKey || e.altKey || pinch.active) return; // Ctrl en + / - blijft de zoom van de browser
+  if (state.mode === 'notes' || !(inn || out) || e.ctrlKey || e.metaKey || e.altKey || pinch.active) return; // Ctrl en + / - blijft de zoom van de browser
   if (e.target.closest?.('input, textarea, select, button, [contenteditable]') || document.querySelector('dialog[open]')) return;
   e.preventDefault();
   setZoom(goal * (inn ? 1.5 : 1 / 1.5));

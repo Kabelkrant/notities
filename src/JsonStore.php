@@ -58,6 +58,19 @@ final class JsonStore
         }, write: true);
     }
 
+    /**
+     * Zet de volgorde van de notitie-app (veld 'order') zonder 'updated' aan te raken: de stapelvolgorde op het canvas hangt van 'updated' af
+     * en moet door het herordenen van de lijst niet veranderen.
+     * @param array<int,int> $order notitie-id => volgnummer
+     */
+    public function setOrder(array $order): void
+    {
+        $this->read(function (array &$d) use ($order) {
+            foreach ($d['notes'] as &$n) if (isset($order[$n['id']])) $n['order'] = $order[$n['id']];
+            return null;
+        }, write: true);
+    }
+
     /** Verwijdert een notitie en geeft die terug (null als hij niet bestond). */
     public function delete(int $id): ?array
     {

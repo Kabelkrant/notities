@@ -24,6 +24,7 @@ export const state = {
   tx: boot.panX || 0,     // verschuiving van de wereld op het scherm (px)
   ty: boot.panY || 0,
   snap: !!boot.snap,
+  mode: boot.mode || 'canvas', // weergavemodus: 'canvas' of 'notes' (notitie-app)
   busy: false,            // slepen of schalen bezig
   missedWhileBusy: false,
   statusHoldUntil: 0,

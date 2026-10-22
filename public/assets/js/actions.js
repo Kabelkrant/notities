@@ -2,7 +2,7 @@ import { UNDO_MS, GRID, items, els, pendingDelete, selected, state } from './sta
 import { snapTo, showGrid } from './snap.js';
 import { board, reportError, showToast, hideToast } from './ui.js';
 import { api } from './api.js';
-import { paint, remove } from './render.js';
+import { paint, remove, notifyChanged } from './render.js';
 import { poll } from './sync.js';
 import { saveMove, saveItem } from './drag.js';
 import { deselect } from './selection.js';
@@ -55,18 +55,19 @@ board.addEventListener('keydown', (e) => {
 });
 // Een selectie met Ctrl+klik geeft geen focus; de toetsen werken dan toch op de selectie
 addEventListener('keydown', (e) => {
-  if (!selected.size || e.target.closest?.('.item, input, textarea, select, button, [contenteditable]') || document.querySelector('dialog[open]')) return;
+  if (state.mode === 'notes' || !selected.size || e.target.closest?.('.item, input, textarea, select, button, [contenteditable]') || document.querySelector('dialog[open]')) return;
   const ids = groupOf([...selected][0]);
   if (e.key === 'Delete') softDelete(ids);
   else if (e.key.startsWith('Arrow')) { e.preventDefault(); moveKey(e, ids[0]); }
 });
 
 // Verwijderen met ongedaan maken; meerdere items (selectie) vormen één melding en één Ongedaan maken
-function softDelete(ids) {
+export function softDelete(ids) {
   ids = ids.filter((id) => items.has(id));
   if (!ids.length) return;
   deselect(ids);
   for (const id of ids) els.get(id).hidden = true;
+  notifyChanged();
   let done = false;
   const commit = (keepalive = false) => {
     if (done) return;
@@ -82,6 +83,7 @@ function softDelete(ids) {
   showToast(ids.length > 1 ? `${ids.length} items verwijderd` : `${typeLabel(items.get(ids[0]))} verwijderd`, () => {
     clearTimeout(timer); done = true;
     for (const id of ids) { pendingDelete.delete(id); els.get(id).hidden = false; }
+    notifyChanged();
   });
 }
 // Nog openstaande verwijderingen alsnog afronden bij sluiten van de pagina

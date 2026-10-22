@@ -7,7 +7,7 @@ import { clockMarkup, updateClock, timeIn } from './clockshape.js';
 import { countdownMarkup, updateCountdown, secondsLeft } from './countdownshape.js';
 import { wordartMarkup, wordartRatio } from './wordartshape.js';
 
-const sig = (n) => [n.type, n.title, n.body, n.color, n.file, n.x, n.y, n.w, n.h, n.rot, n.style, n.tz, n.label, n.seconds, n.text, n.shape, n.target, n.showDate, n.kind, n.strokeOn, n.strokeColor, n.strokeW, n.fillOn, n.fillColor, n.fillTransp, n.textColor, n.textSize, n.updated].join('\u0001');
+const sig = (n) => [n.type, n.title, n.body, n.color, n.file, n.x, n.y, n.w, n.h, n.rot, n.style, n.tz, n.label, n.seconds, n.text, n.shape, n.target, n.showDate, n.kind, n.strokeOn, n.strokeColor, n.strokeW, n.fillOn, n.fillColor, n.fillTransp, n.textColor, n.textSize, n.order, n.updated].join('\u0001');
 
 function buildItem(n) {
   const el = document.createElement(n.type === 'image' ? 'figure' : 'article');
@@ -149,6 +149,9 @@ export function paint(el, n) {
   }
 }
 
+// Meldt de notitie-app dat er items zijn gewijzigd (die tekent zijn lijst opnieuw)
+export const notifyChanged = () => window.dispatchEvent(new Event('notes:changed'));
+
 export function upsert(n) {
   items.set(n.id, n);
   let el = els.get(n.id);
@@ -158,6 +161,7 @@ export function upsert(n) {
     world.appendChild(el);
   }
   paint(el, n);
+  notifyChanged();
 }
 
 export function remove(id) {
@@ -166,6 +170,7 @@ export function remove(id) {
   els.get(id)?.remove();
   els.delete(id);
   refreshBars();
+  notifyChanged();
 }
 
 export function applyServerItems(list) {

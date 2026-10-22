@@ -15,6 +15,7 @@ if (!isset($_COOKIE['view']) && isset($_COOKIE['zoom']) && is_numeric($_COOKIE['
 $zoom = $view[0] > 0 ? max(0.05, min(4.0, $view[0])) : 1.0;
 $panX = max(-1e7, min(1e7, $view[1])); $panY = max(-1e7, min(1e7, $view[2]));
 $snap = ($_COOKIE['snap'] ?? '') === '1';
+$mode = $authed && ($_COOKIE['mode'] ?? '') === 'notes' ? 'notes' : 'canvas'; // weergavemodus: canvas of notitie-app (cookie 'mode', door de app geschreven)
 // Drempels voor 'afbeelding te groot' (vraag om te verkleinen), uit .env; ongeldige waarden vallen terug op de standaard
 $envInt = fn(string $k, int $default, int $min, int $max): int => max($min, min($max, (int)(Auth::env($k) ?: $default)));
 $allow = [ // welke soorten items er nog toegevoegd mogen worden (.env: ALLOW_NOTES, ALLOW_PICTURES, ALLOW_SHAPE, ALLOW_CLOCK, ALLOW_COUNTDOWN, ALLOW_WORDART)
@@ -27,6 +28,7 @@ $boot = [
     'imageMaxBytes' => $envInt('IMAGE_MAX_KB', 2048, 50, 15 * 1024) * 1024,
     'auth' => $authed,
     'snap' => $snap,
+    'mode' => $mode,
     'zoom' => $zoom,
     'panX' => $panX,
     'panY' => $panY,
@@ -55,12 +57,12 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
   <link rel="icon" type="image/png" href="sticky-note.png">
   <link rel="stylesheet" href="assets/app.css?v=<?= $v('assets/app.css') ?>">
 </head>
-<body>
+<body class="mode-<?= $mode ?>">
   <h1 class="sr-only"><?= e($appName) ?></h1>
 <?php if ($authed): ?>
   <div class="toolbar">
     <span id="status" class="status" role="status" aria-live="polite"></span>
-    <div class="split"<?= in_array(true, $allow, true) ? '' : ' hidden' ?>>
+    <div class="split canvas-only"<?= in_array(true, $allow, true) ? '' : ' hidden' ?>>
       <button id="newBtn" type="button" class="icon-btn add-btn" title="Nieuw" aria-label="Nieuw" aria-haspopup="menu" aria-expanded="false" aria-controls="newMenu">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
       </button>
@@ -73,7 +75,7 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
         <button type="button" role="menuitem" id="newCountdown" data-create="countdown"<?= $allow['countdown'] ? '' : ' hidden' ?>><span class="ico" aria-hidden="true">📅</span> Afteller</button>
       </div>
     </div>
-    <div class="zoom-ctl" role="group" aria-label="Zoomen">
+    <div class="zoom-ctl canvas-only" role="group" aria-label="Zoomen">
       <button id="zoomOut" type="button" class="icon-btn" title="Uitzoomen" aria-label="Uitzoomen">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10" cy="10" r="6.5"/><path d="m15 15 6 6M7 10h6"/></svg>
       </button>
@@ -86,8 +88,11 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
       <div id="mainMenu" class="menu" role="menu" hidden>
-        <button type="button" role="menuitem" id="resetZoom"><span class="ico" aria-hidden="true">🔎</span> Reset zoom</button>
-        <button type="button" role="menuitemcheckbox" id="snapToggle" aria-checked="<?= $snap ? 'true' : 'false' ?>"><span class="ico" aria-hidden="true"><span class="check">✓</span></span>Snap to grid</button>
+        <button type="button" role="menuitemradio" id="modeCanvas" data-mode="canvas" aria-checked="<?= $mode === 'canvas' ? 'true' : 'false' ?>"><span class="ico" aria-hidden="true"><span class="radio"></span></span>Canvas</button>
+        <button type="button" role="menuitemradio" id="modeNotes" data-mode="notes" aria-checked="<?= $mode === 'notes' ? 'true' : 'false' ?>"><span class="ico" aria-hidden="true"><span class="radio"></span></span>Notitie-app</button>
+        <hr>
+        <button type="button" role="menuitem" id="resetZoom" class="canvas-only"><span class="ico" aria-hidden="true">🔎</span> Reset zoom</button>
+        <button type="button" role="menuitemcheckbox" id="snapToggle" class="canvas-only" aria-checked="<?= $snap ? 'true' : 'false' ?>"><span class="ico" aria-hidden="true"><span class="check">✓</span></span>Snap to grid</button>
         <button type="button" role="menuitem" id="logoutBtn"><span class="ico" aria-hidden="true">🔒</span> Uitloggen</button>
         <button type="button" role="menuitem" id="aboutBtn"><span class="ico" aria-hidden="true">ℹ️</span> Over</button>
       </div>
@@ -96,6 +101,34 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
   </div>
 
   <main id="board" class="board<?= $snap ? ' snap' : '' ?>" aria-label="Notitiebord" ><div id="world" class="world" style="transform: translate(<?= $panX ?>px, <?= $panY ?>px) scale(<?= $zoom ?>)"></div></main>
+
+  <div id="notesApp" class="notes-app" aria-label="Notitie-app"<?= $mode === 'notes' ? '' : ' hidden' ?>>
+    <aside class="na-list-pane" aria-label="Lijst met notities">
+      <div class="na-list-head">
+        <h2>Notities</h2>
+        <button type="button" id="naNew" class="primary"<?= $allow['notes'] ? '' : ' hidden' ?>>+ Nieuw</button>
+      </div>
+      <div class="na-list" id="naList" role="listbox" aria-label="Notities" aria-orientation="vertical"></div>
+    </aside>
+    <section class="na-editor-pane" aria-label="Notitie">
+      <p class="na-empty" id="naEmpty">Kies een notitie in de lijst of maak een nieuwe.</p>
+      <div class="na-editor" id="naEditor" hidden>
+        <div class="na-editor-head">
+          <button type="button" id="naBack" class="na-back" aria-label="Terug naar de lijst" title="Terug naar de lijst">←</button>
+          <input type="text" id="naTitle" maxlength="255" placeholder="Titel" aria-label="Titel">
+          <span class="swatches" id="naSwatches" aria-label="Kleur"></span>
+          <button type="button" id="naDelete" title="Verwijderen" aria-label="Verwijderen">🗑️</button>
+        </div>
+        <div class="na-conflict" id="naConflict" hidden>
+          <span>Deze notitie is ondertussen elders gewijzigd.</span>
+          <button type="button" id="naKeepMine">Mijn versie bewaren</button>
+          <button type="button" id="naTakeTheirs">Hun versie laden</button>
+        </div>
+        <div class="na-body" id="naBodyField"></div>
+        <div class="na-foot"><span id="naSaved" role="status" aria-live="polite"></span></div>
+      </div>
+    </section>
+  </div>
 
   <dialog id="noteDialog">
     <form id="noteForm" method="dialog">
@@ -117,17 +150,17 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
           <button type="button" data-fmt="numbers" title="Genummerde lijst" aria-label="Genummerde lijst">1. ≡</button>
           <span class="fmt-sep" aria-hidden="true"></span>
           <button type="button" data-fmt="link" title="Link (Ctrl+K)" aria-label="Link">🔗</button>
-          <button type="button" data-fmt="emoji" id="emojiBtn" title="Emoji" aria-label="Emoji" aria-haspopup="true" aria-expanded="false">😀</button>
+          <button type="button" data-fmt="emoji" title="Emoji" aria-label="Emoji" aria-haspopup="true" aria-expanded="false">😀</button>
         </div>
-        <div class="emoji-pop" id="emojiPop" role="group" aria-label="Emoji" hidden></div>
-        <div class="link-box" id="linkBox" hidden>
-          <label>Tekst <input type="text" id="linkText" autocomplete="off" placeholder="Zichtbare tekst (leeg = het adres zelf)"></label>
-          <label>Adres <input type="text" id="linkUrl" inputmode="url" autocomplete="off" placeholder="https://…"></label>
-          <p class="error" id="linkError" hidden></p>
+        <div class="emoji-pop" role="group" aria-label="Emoji" hidden></div>
+        <div class="link-box" hidden>
+          <label>Tekst <input type="text" class="link-text" autocomplete="off" placeholder="Zichtbare tekst (leeg = het adres zelf)"></label>
+          <label>Adres <input type="text" class="link-url" inputmode="url" autocomplete="off" placeholder="https://…"></label>
+          <p class="error link-error" hidden></p>
           <div class="link-actions">
-            <button type="button" id="linkRemove" hidden>Link verwijderen</button>
-            <button type="button" id="linkCancel">Annuleren</button>
-            <button type="button" id="linkApply" class="primary">Toepassen</button>
+            <button type="button" class="link-remove" hidden>Link verwijderen</button>
+            <button type="button" class="link-cancel">Annuleren</button>
+            <button type="button" class="primary link-apply">Toepassen</button>
           </div>
         </div>
         <textarea id="bodyField" name="body" maxlength="20000" required aria-label="Notitie"></textarea>

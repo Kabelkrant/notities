@@ -243,8 +243,8 @@ try {
     $fields = function () use ($in): array {
         $title = trim((string)($in['title'] ?? ''));
         $body = trim((string)($in['body'] ?? ''));
-        if ($title === '' || $body === '') {
-            respond(['error' => 'Titel en notitie zijn verplicht'], 422);
+        if ($title === '') {
+            respond(['error' => 'Titel is verplicht'], 422); // de tekst mag leeg zijn (nieuwe notitie in de notitie-app); het canvasvenster eist hem zelf
         }
         if (mb_strlen($title) > MAX_TITLE || mb_strlen($body) > MAX_BODY) {
             respond(['error' => 'Tekst is te lang'], 422);
@@ -260,7 +260,9 @@ try {
             require_feature('NOTES', 'notities');
             [$t, $b, $c] = $fields();
             check_capacity(false);
-            $n = $store->create(['type' => 'note', 'title' => $t, 'body' => $b, 'color' => $c, 'x' => $coord('x'), 'y' => $coord('y')]);
+            // nieuwe notities komen bovenaan de lijst van de notitie-app (volgnummer lager dan alle bestaande)
+            $order = array_reduce($store->all(), fn($m, $r) => ($r['type'] ?? 'note') === 'note' ? min($m, (int)($r['order'] ?? -$r['id'])) : $m, PHP_INT_MAX);
+            $n = $store->create(['type' => 'note', 'title' => $t, 'body' => $b, 'color' => $c, 'x' => $coord('x'), 'y' => $coord('y'), 'order' => $order === PHP_INT_MAX ? 0 : $order - 1]);
             respond(['note' => note_to_array($n)], 201);
 
         case 'create_item':
@@ -291,6 +293,12 @@ try {
                 respond(['error' => 'Deze notitie is ondertussen door iemand anders gewijzigd. Klik nogmaals op Opslaan om die wijziging te overschrijven, of annuleer om eerst de nieuwe versie te zien.'], 409);
             }
             respond(['note' => note_to_array($found($n))]);
+
+        case 'reorder': // volgorde van de notitie-app: lijst van notitie-id's, in de nieuwe volgorde
+            $ids = array_values(array_unique(array_map('intval', is_array($in['ids'] ?? null) ? $in['ids'] : [])));
+            if (count($ids) > 5000) respond(['error' => 'Te veel notities'], 422);
+            $store->setOrder(array_flip($ids));
+            respond(['ok' => true]);
 
         case 'move':
             $found($store->update($id, ['x' => $coord('x'), 'y' => $coord('y')]));
