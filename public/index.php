@@ -124,7 +124,6 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
         <div class="na-editor-head">
           <button type="button" id="naBack" class="na-back" aria-label="Terug naar de lijst" title="Terug naar de lijst">←</button>
           <input type="text" id="naTitle" maxlength="255" placeholder="Titel" aria-label="Titel">
-          <select id="naFolder" title="Map" aria-label="Map"></select>
           <span class="swatches" id="naSwatches" aria-label="Kleur"></span>
           <button type="button" id="naDelete" title="Verwijderen" aria-label="Verwijderen">🗑️</button>
         </div>

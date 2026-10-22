@@ -363,7 +363,6 @@ body.mode-notes .board { visibility: hidden; } /* blijft bestaan (maten, plaatsi
 .na-rename { width: 100%; padding: .1rem .35rem; font: inherit; font-weight: 700; color: var(--text); background: var(--bg); border: 1px solid var(--accent); border-radius: 6px; }
 .na-fnotes { display: flex; flex-direction: column; gap: .45rem; padding: .25rem 0 .7rem 1.9rem; } /* notities springen in onder hun map */
 .na-folder[data-folder] .na-fnotes:empty { padding: 0; }
-.na-editor-head select { flex: 0 1 9rem; min-width: 0; padding: .4rem .5rem; color: var(--text); background: var(--bg); border: 1px solid color-mix(in srgb, var(--text) 20%, transparent); border-radius: 8px; }
 
 /* Notitie-app: verschuifbare grens tussen lijst en editor; de editor houdt een minimale breedte (420 px) */
 .na-splitter { position: relative; cursor: col-resize; touch-action: none; background: var(--bg); outline: none; }

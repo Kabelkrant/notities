@@ -12,7 +12,7 @@ import { setupEditor } from './format.js';
 // Mappen staan op het bovenste niveau, notities altijd daaronder (geen geneste mappen). Notities zonder map staan in '(niet ingedeeld)' (map 0).
 // Volgorde en indeling horen alleen bij deze weergave; positie en stapelvolgorde op het canvas blijven er los van.
 const app = $('notesApp'), list = $('naList'), editorBox = $('naEditor'), empty = $('naEmpty');
-const titleInput = $('naTitle'), swatchBox = $('naSwatches'), savedEl = $('naSaved'), conflictBox = $('naConflict'), folderSelect = $('naFolder');
+const titleInput = $('naTitle'), swatchBox = $('naSwatches'), savedEl = $('naSaved'), conflictBox = $('naConflict');
 const SAVE_DELAY = 700, GENERAL = 0;
 
 // De Markdown-editor is dezelfde als in het notitievenster op het canvas: de opmaakbalk wordt gekopieerd en opnieuw aangesloten
@@ -135,19 +135,8 @@ function renderList() {
   });
   for (const el of keepItems.values()) el.remove();
   for (const s of keepSec.values()) s.remove();
-  renderFolderSelect();
   const first = list.querySelector('.na-item');
   if (activeId === null && first && !matchMedia('(max-width: 720px)').matches) select(Number(first.dataset.id)); // desktop: meteen de eerste notitie openen
-}
-
-function renderFolderSelect() {
-  const want = state.folders.map((f) => f.id + '|' + f.name).join('\n');
-  if (folderSelect._sig !== want) {
-    folderSelect._sig = want;
-    folderSelect.replaceChildren(...state.folders.map((f) => Object.assign(document.createElement('option'), { value: f.id, textContent: f.name })));
-  }
-  const n = items.get(activeId);
-  if (n) folderSelect.value = String(folderOf(n));
 }
 
 /* ---------- Editor ---------- */
@@ -178,7 +167,6 @@ async function select(id, { focus = false } = {}) {
   editorBox.hidden = false; empty.hidden = true;
   app.classList.add('na-open'); // smal scherm: toon de editor in plaats van de lijst
   if (collapsed.delete(folderOf(n))) { saveCollapsed(); renderList(); } // de map van de gekozen notitie klapt open
-  renderFolderSelect();
   for (const el of list.querySelectorAll('.na-item')) { const on = Number(el.dataset.id) === id; el.classList.toggle('active', on); el.setAttribute('aria-selected', String(on)); }
   itemEl(id)?.scrollIntoView({ block: 'nearest' });
   if (focus) { titleInput.focus(); titleInput.select(); }
@@ -248,16 +236,6 @@ $('naDelete').addEventListener('click', async () => {
   renderList();
   if (next !== undefined && next !== id) select(next); else showNone();
 });
-folderSelect.addEventListener('change', async () => { // map van de notitie wijzigen (ook handig op touch, waar slepen lastig is)
-  if (activeId === null) return;
-  const id = activeId;
-  try {
-    await flush();
-    const { note } = await api({ action: 'note_folder', id, folder: Number(folderSelect.value) });
-    upsert(note); renderList(); itemEl(id)?.scrollIntoView({ block: 'nearest' }); poll();
-  } catch (err) { setSaved('Verplaatsen mislukt: ' + err.message); renderFolderSelect(); }
-});
-
 /* ---------- Nieuwe notitie: ook op het canvas, met dezelfde automatische plaatsing ---------- */
 $('naNew').addEventListener('click', async () => {
   await flush();
@@ -355,7 +333,6 @@ async function saveLayout() {
   const toggled = [];
   notes.forEach(([id, fid], i) => { const n = items.get(id); if (n) { if ((n.folder === TRASH) !== (fid === TRASH)) toggled.push(n); n.order = i; n.folder = fid; } });
   for (const n of toggled) upsert(n); // naar de Prullenbak: van het canvas af; eruit: terug op het canvas
-  renderFolderSelect();
   try { await api({ action: 'organize', folders: ids, notes }); poll(); }
   catch (err) { setSaved('Indeling opslaan mislukt: ' + err.message); }
 }
