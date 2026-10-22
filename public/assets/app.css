@@ -3,6 +3,7 @@
   --bg: #f6f7fb; --surface: #fff; --text: #1d1f27; --muted: #6b7280;
   --accent: #3b6cf6; --shadow: 0 4px 10px rgba(0,0,0,.12);
   --toolbar-gap: .75rem; --add: #2e9e5b; --error: #d93025; --backdrop: rgba(0,0,0,.4); --note-filter: none;
+  --na-mix: #fff; --na-text: #1d1f27; /* notitie-app: het tekstvak mengt een kwart notitiekleur met wit, met donkere tekst */
 }
 /* Donkere modus: volgt de instelling van de browser/het systeem */
 @media (prefers-color-scheme: dark) {
@@ -10,6 +11,7 @@
     --bg: #14161c; --surface: #1f222b; --text: #e8e9ee; --muted: #9aa0ad; --accent: #5b86ff;
     --shadow: 0 4px 12px rgba(0,0,0,.5); --add: #3dae6a;
     --error: #ff7a6e; --backdrop: rgba(0,0,0,.65);
+    --na-mix: #000; --na-text: #e8e9ee; /* donker thema: gemengd met zwart, met lichte tekst */
     --note-filter: brightness(.93) saturate(.95); /* pastelkleuren minder fel, tekst blijft donker */
   }
 }
@@ -303,33 +305,33 @@ body.mode-notes .board { visibility: hidden; } /* blijft bestaan (maten, plaatsi
 .notes-app { position: fixed; inset: 0; z-index: 9000; display: grid; grid-template-columns: 1fr 2fr; background: var(--bg); }
 .notes-app[hidden] { display: none; }
 .na-list-pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-right: 1px solid color-mix(in srgb, var(--text) 15%, transparent); }
-.na-list-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .75rem .9rem .5rem; }
+.na-list-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: 1.1rem 1.25rem .8rem; }
 .na-list-head h2 { margin: 0; font-size: 1.15rem; }
-.na-list { position: relative; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: .5rem; padding: .25rem .75rem 1rem; overscroll-behavior: contain; }
-.na-item { position: relative; flex: none; display: flex; align-items: center; gap: .3rem; padding: .7rem .8rem .7rem .3rem; border-radius: 10px; box-shadow: var(--shadow); color: #1d1f27; cursor: pointer; user-select: none; -webkit-user-select: none; filter: var(--note-filter); }
+.na-list { position: relative; flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: .5rem; padding: .4rem 1.1rem 1.5rem; overscroll-behavior: contain; }
+.na-item { position: relative; flex: none; display: flex; align-items: center; gap: .3rem; padding: .4rem .7rem .4rem .2rem; border-radius: 9px; box-shadow: var(--shadow); color: #1d1f27; cursor: pointer; user-select: none; -webkit-user-select: none; filter: var(--note-filter); }
 .na-item.on-dark { color: #fff; }
 .na-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .na-item.active { outline: 3px solid var(--accent); outline-offset: 1px; }
-.na-title { flex: 1; min-width: 0; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.na-title { flex: 1; min-width: 0; font-size: .92rem; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .na-grip { flex: none; width: 1.3rem; text-align: center; opacity: .4; cursor: grab; touch-action: none; letter-spacing: -.1em; }
 .na-item:hover .na-grip { opacity: .75; }
 .na-item.dragging { z-index: 2; cursor: grabbing; opacity: .92; box-shadow: 0 10px 26px rgba(0,0,0,.35); pointer-events: none; }
 .na-list.reordering, .na-list.reordering * { cursor: grabbing; }
 .na-drop-line { position: absolute; left: .75rem; right: .75rem; height: 4px; margin-top: -2px; border-radius: 2px; background: var(--accent); pointer-events: none; }
-.na-editor-pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.na-editor-pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--surface); } /* wit (donker thema: het donkere vlak) */
 .na-empty { margin: auto; color: var(--muted); }
 .na-empty[hidden], .na-editor[hidden] { display: none; }
-.na-editor { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: .5rem; padding: .75rem 1rem 0; }
-.na-editor-head { display: flex; align-items: center; gap: .6rem; padding-right: 4.5rem; flex-wrap: wrap; } /* ruimte voor het menu rechtsboven */
+.na-editor { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: .9rem; padding: 1.25rem 1.75rem 0; }
+.na-editor-head { display: flex; align-items: center; gap: .9rem; padding-right: 4.5rem; flex-wrap: wrap; } /* ruimte voor het menu rechtsboven */
 .na-editor-head input { flex: 1 1 12rem; min-width: 0; font-size: 1.25rem; font-weight: 600; color: var(--text); background: var(--bg); border: 1px solid color-mix(in srgb, var(--text) 20%, transparent); border-radius: 8px; }
 .na-editor-head .swatches { flex: none; }
 .na-back { display: none; }
 .na-conflict { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding: .5rem .7rem; border-radius: 8px; background: color-mix(in srgb, var(--error) 14%, var(--surface)); font-size: .9rem; }
 .na-conflict[hidden] { display: none; }
 .na-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.na-body .field { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: .4rem; }
-.na-body textarea { flex: 1; min-height: 0; height: auto; resize: none; line-height: 1.45; }
-.na-foot { min-height: 1.6rem; padding: .2rem 0 .4rem; font-size: .8rem; color: var(--muted); }
+.na-body .field { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: .8rem; }
+.na-body textarea { flex: 1; min-height: 0; height: auto; resize: none; line-height: 1.5; padding: 1rem 1.1rem; color: var(--na-text); background: color-mix(in srgb, var(--na-color, #fff) 25%, var(--na-mix)); border-color: color-mix(in srgb, var(--text) 18%, transparent); border-radius: 10px; } /* het tekstvak mengt een kwart van de notitiekleur met wit (licht thema) of zwart (donker thema) */
+.na-foot { min-height: 1.8rem; padding: .3rem 0 .7rem; font-size: .8rem; color: var(--muted); }
 @media (max-width: 720px) {
   .notes-app { grid-template-columns: 1fr; }
   .na-editor-pane { display: none; }
@@ -340,17 +342,16 @@ body.mode-notes .board { visibility: hidden; } /* blijft bestaan (maten, plaatsi
 }
 
 /* Notitie-app: mappen (boomstructuur) */
-.na-list { gap: .2rem; }
+.na-list { gap: .5rem; }
 .na-list-actions { display: inline-flex; gap: .4rem; align-items: center; }
 .na-folder { display: flex; flex-direction: column; }
 .na-folder.dragging { position: relative; z-index: 3; opacity: .92; box-shadow: 0 10px 26px rgba(0,0,0,.3); border-radius: 10px; background: var(--bg); pointer-events: none; }
 .na-folder.drag-collapsed .na-fnotes { display: none; }
 .na-folder.collapsed .na-fnotes { display: none; }
-.na-fhead { display: flex; align-items: center; gap: .3rem; padding: .45rem .5rem .45rem .3rem; border-radius: 8px; cursor: pointer; user-select: none; -webkit-user-select: none; font-weight: 700; }
+.na-fhead { display: flex; align-items: center; gap: .4rem; padding: .55rem .6rem .55rem .3rem; border-radius: 8px; cursor: pointer; user-select: none; -webkit-user-select: none; font-weight: 700; }
 .na-fhead:hover, .na-fhead:focus-visible { background: color-mix(in srgb, var(--accent) 10%, transparent); outline: none; }
 .na-fhead .na-grip { cursor: grab; }
-.na-chev { flex: none; width: 1rem; text-align: center; transition: transform .12s; font-size: .8rem; color: var(--muted); }
-.na-folder.collapsed .na-chev { transform: rotate(-90deg); }
+.na-ficon { flex: none; width: 1.4rem; text-align: center; font-size: 1.05rem; }
 .na-fname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .na-fcount { flex: none; font-size: .78rem; font-weight: 400; color: var(--muted); }
 .na-factions { flex: none; display: inline-flex; gap: .2rem; opacity: 0; }
@@ -359,6 +360,6 @@ body.mode-notes .board { visibility: hidden; } /* blijft bestaan (maten, plaatsi
 .na-factions button { padding: .1rem .35rem; font-size: .85rem; line-height: 1.2; border: none; background: transparent; }
 .na-factions button.confirm { background: var(--error); color: #fff; border-radius: 6px; }
 .na-rename { width: 100%; padding: .1rem .35rem; font: inherit; font-weight: 700; color: var(--text); background: var(--bg); border: 1px solid var(--accent); border-radius: 6px; }
-.na-fnotes { display: flex; flex-direction: column; gap: .4rem; padding: .15rem 0 .45rem .9rem; } /* notities springen in onder hun map */
+.na-fnotes { display: flex; flex-direction: column; gap: .45rem; padding: .25rem 0 .7rem 1.9rem; } /* notities springen in onder hun map */
 .na-folder[data-folder] .na-fnotes:empty { padding: 0; }
 .na-editor-head select { flex: 0 1 9rem; min-width: 0; padding: .4rem .5rem; color: var(--text); background: var(--bg); border: 1px solid color-mix(in srgb, var(--text) 20%, transparent); border-radius: 8px; }

@@ -9,7 +9,7 @@ import { needsLightText } from './color.js';
 import { setupEditor } from './format.js';
 
 // Notitie-app: links een boomstructuur van mappen met notities (1/3), rechts de editor (2/3), zoals een e-mailprogramma.
-// Mappen staan op het bovenste niveau, notities altijd daaronder (geen geneste mappen). Notities zonder map staan in 'Algemeen' (map 0).
+// Mappen staan op het bovenste niveau, notities altijd daaronder (geen geneste mappen). Notities zonder map staan in '(niet ingedeeld)' (map 0).
 // Volgorde en indeling horen alleen bij deze weergave; positie en stapelvolgorde op het canvas blijven er los van.
 const app = $('notesApp'), list = $('naList'), editorBox = $('naEditor'), empty = $('naEmpty');
 const titleInput = $('naTitle'), swatchBox = $('naSwatches'), savedEl = $('naSaved'), conflictBox = $('naConflict'), folderSelect = $('naFolder');
@@ -35,7 +35,7 @@ try { collapsed = new Set(JSON.parse(localStorage.getItem('na-collapsed') || '[]
 const saveCollapsed = () => { try { localStorage.setItem('na-collapsed', JSON.stringify([...collapsed])); } catch { /* geen opslag */ } };
 
 const folderIds = () => state.folders.map((f) => f.id);
-const folderOf = (n) => folderIds().includes(n.folder) ? n.folder : GENERAL; // een onbekende map telt als Algemeen
+const folderOf = (n) => folderIds().includes(n.folder) ? n.folder : GENERAL; // een onbekende map telt als (niet ingedeeld)
 const visibleNotes = () => [...items.values()].filter((n) => n.type === 'note' && !els.get(n.id)?.hidden).sort((a, b) => a.order - b.order || b.id - a.id);
 const section = (fid) => list.querySelector(`.na-folder[data-folder="${fid}"]`);
 const itemEl = (id) => list.querySelector(`.na-item[data-id="${id}"]`);
@@ -48,10 +48,10 @@ function buildFolder(f) {
   sec.className = 'na-folder'; sec.dataset.folder = f.id;
   sec.innerHTML = `<div class="na-fhead" tabindex="0" role="treeitem">
       <span class="na-grip" aria-hidden="true" title="Sleep om de map te verplaatsen">⋮⋮</span>
-      <span class="na-chev" aria-hidden="true">▾</span><span class="na-fname"></span><span class="na-fcount"></span>
+      <span class="na-ficon" aria-hidden="true">📂</span><span class="na-fname"></span><span class="na-fcount"></span>
       <span class="na-factions"><button type="button" class="na-fedit" title="Naam wijzigen" aria-label="Naam wijzigen">✏️</button><button type="button" class="na-fdel" title="Map verwijderen" aria-label="Map verwijderen">🗑️</button></span>
     </div><div class="na-fnotes" role="group"></div>`;
-  if (f.id === GENERAL) sec.querySelector('.na-factions').hidden = true; // Algemeen blijft altijd bestaan
+  if (f.id === GENERAL) sec.querySelector('.na-factions').hidden = true; // (niet ingedeeld) blijft altijd bestaan
   return sec;
 }
 
@@ -76,6 +76,7 @@ function renderList() {
     const isCollapsed = collapsed.has(f.id), head = sec.querySelector('.na-fhead');
     sec.classList.toggle('collapsed', isCollapsed);
     head.setAttribute('aria-expanded', String(!isCollapsed));
+    sec.querySelector('.na-ficon').textContent = isCollapsed ? '📁' : '📂'; // dichte of geopende map
     if (!sec.querySelector('.na-rename')) sec.querySelector('.na-fname').textContent = f.name;
     sec.querySelector('.na-fcount').textContent = byFolder.get(f.id).length;
     const box = sec.querySelector('.na-fnotes');
@@ -112,12 +113,16 @@ function renderFolderSelect() {
 const snapshot = () => ({ title: titleInput.value, body: body.value, color });
 function setSaved(text) { savedEl.textContent = text; }
 
+// De kleur van de notitie voor het tekstvak (de menging met wit of zwart, en de tekstkleur, regelt de CSS per thema)
+function tint() { editorBox.style.setProperty('--na-color', color); }
+
 function fill(n) {
   titleInput.value = n.title;
   body.value = n.body;
   color = n.color;
   base = { title: n.title, body: n.body, color: n.color };
   for (const b of swatchBox.children) b.setAttribute('aria-pressed', String(b.title.toLowerCase() === color.toLowerCase()));
+  tint();
 }
 
 async function select(id, { focus = false } = {}) {
@@ -188,7 +193,7 @@ titleInput.addEventListener('blur', () => { if (dirty) save(); });
 for (const c of COLORS) {
   const b = document.createElement('button');
   b.type = 'button'; b.style.background = c; b.title = c; b.setAttribute('aria-label', 'Kleur ' + c);
-  b.addEventListener('click', () => { color = c; for (const s of swatchBox.children) s.setAttribute('aria-pressed', String(s === b)); touch(); });
+  b.addEventListener('click', () => { color = c; tint(); for (const s of swatchBox.children) s.setAttribute('aria-pressed', String(s === b)); touch(); });
   swatchBox.appendChild(b);
 }
 $('naKeepMine').addEventListener('click', () => { conflict = false; conflictBox.hidden = true; save(true); });
@@ -264,7 +269,7 @@ function startRename(sec) {
 
 async function deleteFolder(btn, sec) {
   const fid = Number(sec.dataset.folder);
-  if (!btn.classList.contains('confirm')) { // eerst bevestigen: een tweede klik verwijdert (de notities verhuizen naar Algemeen)
+  if (!btn.classList.contains('confirm')) { // eerst bevestigen: een tweede klik verwijdert (de notities verhuizen naar (niet ingedeeld))
     btn.classList.add('confirm'); btn.textContent = 'Zeker?';
     setTimeout(() => { btn.classList.remove('confirm'); btn.textContent = '🗑️'; }, 3000);
     return;

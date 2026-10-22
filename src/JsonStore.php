@@ -11,6 +11,9 @@ final class ConflictException extends RuntimeException {}
  */
 final class JsonStore
 {
+    /** Naam van map 0: waar notities zonder (bestaande) map staan. */
+    public const GENERAL = '(niet ingedeeld)';
+
     public function __construct(private string $path) {}
 
     /** @return list<array<string,mixed>> */
@@ -72,13 +75,13 @@ final class JsonStore
     }
 
     /* ---------- Mappen van de notitie-app (hoogstens één niveau diep) ----------
-     * 'folders' is een geordende lijst {id, name}; map 0 'Algemeen' bestaat altijd en vangt notities zonder (bestaande) map op.
+     * 'folders' is een geordende lijst {id, name}; map 0 '(niet ingedeeld)' bestaat altijd en vangt notities zonder (bestaande) map op.
      * Mapindeling en volgorde raken 'updated' van een notitie niet aan, zodat de stapelvolgorde op het canvas gelijk blijft. */
     private function folderList(array $d): array
     {
         $f = array_values($d['folders'] ?? []);
-        if (!array_filter($f, fn($x) => $x['id'] === 0)) array_unshift($f, ['id' => 0, 'name' => 'Algemeen']);
-        return $f;
+        if (!array_filter($f, fn($x) => $x['id'] === 0)) array_unshift($f, ['id' => 0, 'name' => self::GENERAL]);
+        return array_map(fn($x) => $x['id'] === 0 ? ['id' => 0, 'name' => self::GENERAL] : $x, $f); // de naam van map 0 staat vast
     }
 
     /** @return list<array{id:int,name:string}> */
@@ -107,7 +110,7 @@ final class JsonStore
         }, write: true);
     }
 
-    /** Verwijdert een map; de notities erin verhuizen naar Algemeen. Map 0 kan niet weg. */
+    /** Verwijdert een map; de notities erin verhuizen naar de map (niet ingedeeld). Map 0 kan niet weg. */
     public function deleteFolder(int $id): bool
     {
         if ($id === 0) return false;

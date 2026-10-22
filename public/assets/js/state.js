@@ -24,7 +24,7 @@ export const state = {
   tx: boot.panX || 0,     // verschuiving van de wereld op het scherm (px)
   ty: boot.panY || 0,
   snap: !!boot.snap,
-  folders: boot.folders || [{ id: 0, name: 'Algemeen' }], // mappen van de notitie-app, in volgorde; map 0 is Algemeen
+  folders: boot.folders || [{ id: 0, name: '(niet ingedeeld)' }], // mappen van de notitie-app, in volgorde; map 0 is (niet ingedeeld)
   mode: boot.mode || 'canvas', // weergavemodus: 'canvas' of 'notes' (notitie-app)
   busy: false,            // slepen of schalen bezig
   missedWhileBusy: false,

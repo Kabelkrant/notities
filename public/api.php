@@ -314,12 +314,12 @@ try {
             respond(['folder' => $store->createFolder($name), 'folders' => $store->folders()], 201);
 
         case 'folder_rename':
-            if ($id === 0) respond(['error' => 'De map Algemeen kan niet hernoemd worden'], 400);
+            if ($id === 0) respond(['error' => 'Deze map kan niet hernoemd worden'], 400);
             if (!$store->renameFolder($id, $folderName())) respond(['error' => 'Map niet gevonden'], 404);
             respond(['folders' => $store->folders()]);
 
-        case 'folder_delete': // de notities in de map verhuizen naar Algemeen
-            if ($id === 0) respond(['error' => 'De map Algemeen kan niet verwijderd worden'], 400);
+        case 'folder_delete': // de notities in de map verhuizen naar (niet ingedeeld)
+            if ($id === 0) respond(['error' => 'Deze map kan niet verwijderd worden'], 400);
             if (!$store->deleteFolder($id)) respond(['error' => 'Map niet gevonden'], 404);
             respond(['folders' => $store->folders()]);
 

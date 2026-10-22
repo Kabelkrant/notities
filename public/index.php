@@ -91,7 +91,7 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
       </button>
       <div id="mainMenu" class="menu" role="menu" hidden>
         <button type="button" role="menuitemradio" id="modeCanvas" data-mode="canvas" aria-checked="<?= $mode === 'canvas' ? 'true' : 'false' ?>"><span class="ico" aria-hidden="true"><span class="radio"></span></span>Canvas</button>
-        <button type="button" role="menuitemradio" id="modeNotes" data-mode="notes" aria-checked="<?= $mode === 'notes' ? 'true' : 'false' ?>"><span class="ico" aria-hidden="true"><span class="radio"></span></span>Notitie-app</button>
+        <button type="button" role="menuitemradio" id="modeNotes" data-mode="notes" aria-checked="<?= $mode === 'notes' ? 'true' : 'false' ?>"><span class="ico" aria-hidden="true"><span class="radio"></span></span>Notities</button>
         <hr>
         <button type="button" role="menuitem" id="resetZoom" class="canvas-only"><span class="ico" aria-hidden="true">🔎</span> Reset zoom</button>
         <button type="button" role="menuitemcheckbox" id="snapToggle" class="canvas-only" aria-checked="<?= $snap ? 'true' : 'false' ?>"><span class="ico" aria-hidden="true"><span class="check">✓</span></span>Snap to grid</button>
@@ -104,7 +104,7 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
 
   <main id="board" class="board<?= $snap ? ' snap' : '' ?>" aria-label="Notitiebord" ><div id="world" class="world" style="transform: translate(<?= $panX ?>px, <?= $panY ?>px) scale(<?= $zoom ?>)"></div></main>
 
-  <div id="notesApp" class="notes-app" aria-label="Notitie-app"<?= $mode === 'notes' ? '' : ' hidden' ?>>
+  <div id="notesApp" class="notes-app" aria-label="Notities"<?= $mode === 'notes' ? '' : ' hidden' ?>>
     <aside class="na-list-pane" aria-label="Lijst met notities">
       <div class="na-list-head">
         <h2>Notities</h2>
