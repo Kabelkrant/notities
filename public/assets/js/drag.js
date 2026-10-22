@@ -5,7 +5,7 @@ import { api } from './api.js';
 import { poll } from './sync.js';
 import { snapTo, showGrid } from './snap.js';
 import { paint } from './render.js';
-import { refreshBars, pinch, isFocused } from './zoom.js';
+import { refreshBars, pinch, isChosen } from './zoom.js';
 import { TYPES } from './types.js';
 
 // Slepen, schalen en roteren (Pointer Events)
@@ -22,7 +22,7 @@ board.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     return;
   }
-  if (e.pointerType === 'touch' && !isFocused(item)) return; // op touch eerst tikken om een item te kiezen; slepen pant dan het bord (zoom.js)
+  if (!isChosen(item)) return; // eerst klikken of tikken om een item te kiezen; slepen pant dan het bord (zoom.js)
   if (!selected.has(n.id)) clearSelection();
 
   const rot = e.target.closest('.rotate-handle');

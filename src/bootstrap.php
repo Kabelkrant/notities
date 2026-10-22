@@ -40,10 +40,10 @@ const MAX_SHAPE_TEXT = 300;
 const MIN_SHAPE_TEXT_SIZE = 8;
 const MAX_SHAPE_TEXT_SIZE = 200;
 const MAX_SHAPE_STROKE = 40;
-const SHAPE_DEFAULTS = [ // standaard 'Blauw': vulling, rand en tekstkleur
+const SHAPE_DEFAULTS = [ // standaard 'Petrol': vulling, rand en tekstkleur
     'kind' => 'rect', 'text' => '', 'textColor' => '#FFFFFF', 'textSize' => 20,
-    'strokeOn' => true, 'strokeColor' => '#0D47A1', 'strokeW' => 3,
-    'fillOn' => true, 'fillColor' => '#1E88E5', 'fillTransp' => 0,
+    'strokeOn' => true, 'strokeColor' => '#0E4A62', 'strokeW' => 3,
+    'fillOn' => true, 'fillColor' => '#166786', 'fillTransp' => 0,
 ];
 const CLOCK_STYLES = ['classic', 'red', 'neon', 'black', 'digital']; // zilver, rood, neon, zwarte rand, digitaal
 const CLOCK_DEFAULT_SIZE = 160;

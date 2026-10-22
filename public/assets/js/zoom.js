@@ -1,5 +1,6 @@
 import { ZOOM_STEPS, ZOOM_MIN, ZOOM_MAX, items, els, selected, state } from './state.js';
 import { $, board, world } from './ui.js';
+import { clearSelection } from './selection.js';
 
 // Camera: de wereld (alle items) staat in één laag die met een transform wordt geschaald en verschoven.
 // Scherm = wereld * zoom + (tx, ty). De opmaak van de items blijft daardoor op elk niveau gelijk.
@@ -140,14 +141,17 @@ board.addEventListener('pointerup', endTouch, true);
 board.addEventListener('pointercancel', endTouch, true);
 
 // Pannen: slepen op leeg bord (of met de middelste muisknop overal). Het handje verschijnt pas zodra er echt gesleept wordt.
-// Op touch pant ook slepen vanaf een item dat nog niet gefocust is (eerst tikken om het te kiezen, dan pas verplaatsen, zie drag.js);
-// een tik zonder slepen focust het item. Zo schuif je niet per ongeluk een item weg terwijl je het bord wilde scrollen.
+// Een item moet eerst gekozen zijn (aangeklikt of aangetikt, of geselecteerd met Ctrl) voordat je het kunt verslepen, zie drag.js:
+// slepen vanaf een niet-gekozen item pant het bord, en een klik of tik zonder slepen kiest het item. Zo schuif je niet per ongeluk
+// een item weg terwijl je het bord wilde verschuiven of scrollen.
 let pan = null;
-export const isFocused = (item) => item.matches(':focus-within');
+// gekozen = gefocust, of onderdeel van de selectie
+export const isChosen = (item) => item.matches(':focus-within') || selected.has(Number(item.dataset.id));
 board.addEventListener('pointerdown', (e) => {
   const middle = e.button === 1, item = e.target.closest?.('.item');
-  const touchPan = e.pointerType === 'touch' && item && !e.target.closest('button, a, .rotate-handle, .resize-handle')
-    && (!isFocused(item) || (item.classList.contains('note') && !e.target.closest('.note-head'))); // ook over de tekst van een notitie heen
+  const touch = e.pointerType === 'touch';
+  const touchPan = item && !e.target.closest('button, a, .rotate-handle, .resize-handle')
+    && (!isChosen(item) || (touch && item.classList.contains('note') && !e.target.closest('.note-head'))); // op touch pant ook de tekst van een gekozen notitie
   if (pinch.active || (!middle && !(e.button === 0 && (e.target === board || touchPan)))) return;
   pan = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false, tap: touchPan ? item : null };
   board.setPointerCapture(e.pointerId);
@@ -166,7 +170,7 @@ board.addEventListener('pointermove', (e) => {
 });
 function endPan(e) {
   if (!pan || e.pointerId !== pan.id) return;
-  if (pan.tap && !pan.moved && e.type === 'pointerup') pan.tap.focus({ preventScroll: true }); // een tik kiest het item
+  if (pan.tap && !pan.moved && e.type === 'pointerup') { clearSelection(); pan.tap.focus({ preventScroll: true }); } // een klik of tik kiest het item
   pan = null;
   board.classList.remove('panning');
   state.tx = Math.round(state.tx); state.ty = Math.round(state.ty);

@@ -262,7 +262,7 @@ input[type=color] { padding: 0; height: 2.2rem; width: 100%; }
 .bar:hover .bar-thumb { background: color-mix(in srgb, var(--text) 55%, transparent); }
 
 /* Vormen: tekst gecentreerd in de vorm; de marge volgt de vorm zodat de tekst binnen de vulling blijft */
-.shape .shape-text { position: absolute; inset: 6%; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; white-space: pre-wrap; overflow-wrap: anywhere; overflow: hidden; pointer-events: none; font-family: 'Segoe UI', Arial, sans-serif; }
+.shape .shape-text { position: absolute; inset: 6%; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.2; white-space: pre-wrap; overflow-wrap: anywhere; overflow: hidden; pointer-events: none; font-family: 'Segoe UI', Arial, sans-serif; font-weight: 600; }
 .shape[data-kind="circle"] .shape-text { inset: 15%; }
 .shape[data-kind="heart"] .shape-text { inset: 20% 17% 26%; }
 .shape[data-kind="arrow"] .shape-text { inset: 30% 14%; }
@@ -282,3 +282,8 @@ input[type=color] { padding: 0; height: 2.2rem; width: 100%; }
 .shape-row input[type=range] { padding: 0; height: 2.2rem; width: 100%; accent-color: var(--accent); }
 .shape-row output { float: right; color: var(--text); }
 #shapeForm textarea { min-height: 0; height: 3.6rem; resize: vertical; padding: .4rem .5rem; font: inherit; }
+.shape-view { display: flex; flex-direction: column; gap: .7rem; }
+.shape-view[hidden] { display: none; }
+.shape-presets .shape-custom { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .1rem; font-size: .72rem; line-height: 1.1; padding: .2rem; }
+.shape-presets .shape-custom span:first-child { font-size: 1.1rem; }
+#shapeDialog menu { position: sticky; bottom: -1.25rem; margin: 0; padding: .6rem 0 0; background: var(--surface); } /* knoppen blijven in beeld op lage schermen */

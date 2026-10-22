@@ -6,21 +6,26 @@ import { defineType } from './types.js';
 import { shapeSvg, SHAPE_KINDS, SHAPE_PRESETS, SHAPE_DEFAULT_W, SHAPE_DEFAULT_H, SHAPE_MIN } from './shapeshape.js';
 import { MAX_SIZE } from './state.js';
 
-// Dialoog: vorm, kleurstelling, tekst en eigen vormgeving met live voorbeeld
+// Dialoog met twee weergaven en een live voorbeeld dat in beide zichtbaar blijft:
+//   1: vorm, kleurstelling en tekst   2: ontwerpopties voor rand, vulling en tekst (via 'Aangepast')
 const dlg = $('shapeDialog'), form = $('shapeForm'), preview = $('shapePreview'), kindBox = $('shapeKinds'), presetBox = $('shapePresets'), errBox = $('shapeError');
 const FIELDS = ['strokeOn', 'strokeColor', 'strokeW', 'fillOn', 'fillColor', 'fillTransp', 'textColor', 'textSize'];
 const outputs = { strokeW: $('strokeWOut'), fillTransp: $('fillTranspOut'), textSize: $('textSizeOut') };
 const units = { strokeW: ' px', fillTransp: ' %', textSize: ' px' };
 let current = null, choice = null;
 
-const sameColors = (a, b) => ['fillOn', 'fillColor', 'strokeOn', 'strokeColor', 'textColor'].every((k) => String(a[k]).toLowerCase() === String(b[k]).toLowerCase());
+const PRESET_KEYS = ['fillOn', 'fillColor', 'strokeOn', 'strokeColor', 'strokeW', 'fillTransp', 'textColor'];
+const samePreset = (a, b) => PRESET_KEYS.every((k) => String(a[k]).toLowerCase() === String(b[k]).toLowerCase());
+const view1 = $('shapeView1'), view2 = $('shapeView2');
+let view = 1, snapshot = null;
 
 function renderPreview() {
   const c = choice, esc = c.text.replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
   preview.innerHTML = `<div class="shape shape-sample" data-kind="${c.kind}"><div class="shape-art">${shapeSvg(c, 180, 110)}</div>`
     + `<div class="shape-text" style="color:${c.textColor};font-size:${c.textSize}px">${esc}</div></div>`;
   for (const b of kindBox.children) b.setAttribute('aria-pressed', String(b.dataset.kind === c.kind));
-  [...presetBox.children].forEach((b, i) => b.setAttribute('aria-pressed', String(sameColors(c, SHAPE_PRESETS[i]))));
+  const hit = SHAPE_PRESETS.findIndex((p) => samePreset(c, p));
+  [...presetBox.children].forEach((b, i) => b.setAttribute('aria-pressed', String(i === (hit < 0 ? SHAPE_PRESETS.length : hit)))); // geen kleurstelling: dan is het 'Aangepast'
   for (const k of FIELDS) {
     const el = form[k];
     if (el.type === 'checkbox') el.checked = c[k]; else el.value = c[k];
@@ -41,9 +46,29 @@ for (const p of SHAPE_PRESETS) {
   const b = document.createElement('button');
   b.type = 'button'; b.title = p.name; b.setAttribute('aria-label', p.name);
   b.innerHTML = shapeSvg({ kind: 'rect', ...p }, 56, 36);
-  b.addEventListener('click', () => { Object.assign(choice, { fillOn: p.fillOn, fillColor: p.fillColor, strokeOn: p.strokeOn, strokeColor: p.strokeColor, textColor: p.textColor }); renderPreview(); });
+  b.addEventListener('click', () => { for (const k of PRESET_KEYS) choice[k] = p[k]; renderPreview(); });
   presetBox.appendChild(b);
 }
+// positie 8: 'Aangepast' opent weergave 2
+const custom = document.createElement('button');
+custom.type = 'button'; custom.className = 'shape-custom'; custom.title = 'Aangepast: rand, vulling en tekst zelf instellen';
+custom.innerHTML = '<span aria-hidden="true">🎨</span><span>Aangepast</span>';
+custom.addEventListener('click', () => { snapshot = Object.fromEntries(FIELDS.map((k) => [k, choice[k]])); showView(2); });
+presetBox.appendChild(custom);
+
+function showView(n) {
+  view = n;
+  view1.hidden = n !== 1; view2.hidden = n !== 2;
+  dlg.scrollTop = 0;
+  (n === 1 ? form.text : form.strokeOn).focus({ preventScroll: true });
+}
+// OK houdt de aanpassingen; Annuleren zet de ontwerpopties terug naar hoe ze waren bij het openen van weergave 2. Beide gaan terug naar weergave 1.
+const designOk = () => showView(1);
+const designCancel = () => { if (snapshot) Object.assign(choice, snapshot); renderPreview(); showView(1); };
+$('shapeDesignOk').addEventListener('click', designOk);
+$('shapeDesignCancel').addEventListener('click', designCancel);
+dlg.addEventListener('cancel', (e) => { if (view === 2) { e.preventDefault(); designCancel(); } }); // Escape in weergave 2
+form.addEventListener('keydown', (e) => { if (view === 2 && e.key === 'Enter') { e.preventDefault(); designOk(); } });
 form.text.addEventListener('input', () => { choice.text = form.text.value; errBox.hidden = true; renderPreview(); });
 for (const k of FIELDS) {
   form[k].addEventListener('input', () => {
@@ -61,6 +86,7 @@ export function openShapeDialog(n) {
   form.text.value = n.text;
   errBox.hidden = true;
   renderPreview();
+  showView(1);
   dlg.showModal();
   form.text.focus(); form.text.setSelectionRange(form.text.value.length, form.text.value.length);
 }

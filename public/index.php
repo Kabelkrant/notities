@@ -228,39 +228,49 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
     <form id="shapeForm" method="dialog">
       <h2 id="shapeTitle">Vorm</h2>
       <div class="shape-preview" id="shapePreview"></div>
-      <div class="field">
-        <span class="field-label">Vorm</span>
-        <div class="shape-kinds" id="shapeKinds"></div>
+
+      <div class="shape-view" id="shapeView1">
+        <div class="field">
+          <span class="field-label">Vorm</span>
+          <div class="shape-kinds" id="shapeKinds"></div>
+        </div>
+        <div class="field">
+          <span class="field-label">Kleurstelling</span>
+          <div class="shape-presets" id="shapePresets"></div>
+        </div>
+        <label>Tekst
+          <textarea name="text" rows="2" maxlength="300" placeholder="Tekst in de vorm (optioneel)"></textarea>
+        </label>
+        <p class="error" id="shapeError" hidden></p>
+        <menu>
+          <button type="button" id="shapeCancel">Annuleren</button>
+          <button type="submit" class="primary">Opslaan</button>
+        </menu>
       </div>
-      <div class="field">
-        <span class="field-label">Kleurstelling</span>
-        <div class="shape-presets" id="shapePresets"></div>
+
+      <div class="shape-view" id="shapeView2" hidden>
+        <fieldset class="shape-group">
+          <legend>Rand</legend>
+          <label class="inline-check"><input type="checkbox" name="strokeOn"> Rand tonen</label>
+          <div class="shape-row"><label>Kleur<input type="color" name="strokeColor"></label>
+            <label>Dikte <output id="strokeWOut"></output><input type="range" name="strokeW" min="1" max="24" step="1"></label></div>
+        </fieldset>
+        <fieldset class="shape-group">
+          <legend>Vulling</legend>
+          <label class="inline-check"><input type="checkbox" name="fillOn"> Vulling tonen</label>
+          <div class="shape-row"><label>Kleur<input type="color" name="fillColor"></label>
+            <label>Transparantie <output id="fillTranspOut"></output><input type="range" name="fillTransp" min="0" max="100" step="5"></label></div>
+        </fieldset>
+        <fieldset class="shape-group">
+          <legend>Tekst</legend>
+          <div class="shape-row"><label>Kleur<input type="color" name="textColor"></label>
+            <label>Grootte <output id="textSizeOut"></output><input type="range" name="textSize" min="8" max="120" step="1"></label></div>
+        </fieldset>
+        <menu>
+          <button type="button" id="shapeDesignCancel">Annuleren</button>
+          <button type="button" id="shapeDesignOk" class="primary">OK</button>
+        </menu>
       </div>
-      <label>Tekst
-        <textarea name="text" rows="2" maxlength="300" placeholder="Tekst in de vorm (optioneel)"></textarea>
-      </label>
-      <fieldset class="shape-group">
-        <legend>Rand</legend>
-        <label class="inline-check"><input type="checkbox" name="strokeOn"> Rand tonen</label>
-        <div class="shape-row"><label>Kleur<input type="color" name="strokeColor"></label>
-          <label>Dikte <output id="strokeWOut"></output><input type="range" name="strokeW" min="1" max="24" step="1"></label></div>
-      </fieldset>
-      <fieldset class="shape-group">
-        <legend>Vulling</legend>
-        <label class="inline-check"><input type="checkbox" name="fillOn"> Vulling tonen</label>
-        <div class="shape-row"><label>Kleur<input type="color" name="fillColor"></label>
-          <label>Transparantie <output id="fillTranspOut"></output><input type="range" name="fillTransp" min="0" max="100" step="5"></label></div>
-      </fieldset>
-      <fieldset class="shape-group">
-        <legend>Tekst</legend>
-        <div class="shape-row"><label>Kleur<input type="color" name="textColor"></label>
-          <label>Grootte <output id="textSizeOut"></output><input type="range" name="textSize" min="8" max="120" step="1"></label></div>
-      </fieldset>
-      <p class="error" id="shapeError" hidden></p>
-      <menu>
-        <button type="button" id="shapeCancel">Annuleren</button>
-        <button type="submit" class="primary">Opslaan</button>
-      </menu>
     </form>
   </dialog>
 

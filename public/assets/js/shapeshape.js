@@ -4,16 +4,16 @@ export const SHAPE_DEFAULT_W = 200, SHAPE_DEFAULT_H = 120;
 export const SHAPE_MIN = 30, SHAPE_MAX_TEXT = 300;
 
 // Kleurstellingen: vulling, rand en tekstkleur in één keuze
+// Zes kleurstellingen met witte tekst (de eerste is ook de standaard voor een nieuwe vorm), 'Alleen omtrek' met donkere tekst
 export const SHAPE_PRESETS = [
-  { name: 'Blauw', fillOn: true, fillColor: '#1E88E5', strokeOn: true, strokeColor: '#0D47A1', textColor: '#FFFFFF' },
-  { name: 'Rood', fillOn: true, fillColor: '#E53935', strokeOn: true, strokeColor: '#B71C1C', textColor: '#FFFFFF' },
-  { name: 'Groen', fillOn: true, fillColor: '#43A047', strokeOn: true, strokeColor: '#1B5E20', textColor: '#FFFFFF' },
-  { name: 'Geel', fillOn: true, fillColor: '#FDD835', strokeOn: true, strokeColor: '#F9A825', textColor: '#1D1F27' },
-  { name: 'Paars', fillOn: true, fillColor: '#8E24AA', strokeOn: true, strokeColor: '#4A148C', textColor: '#FFFFFF' },
-  { name: 'Roze pastel', fillOn: true, fillColor: '#F8BBD0', strokeOn: true, strokeColor: '#EC407A', textColor: '#880E4F' },
-  { name: 'Zwart', fillOn: true, fillColor: '#1D1F27', strokeOn: true, strokeColor: '#9E9E9E', textColor: '#FFFFFF' },
-  { name: 'Alleen omtrek', fillOn: false, fillColor: '#FFFFFF', strokeOn: true, strokeColor: '#1D1F27', textColor: '#1D1F27' },
-].map((p) => ({ strokeW: 3, fillTransp: 0, ...p }));
+  { name: 'Petrol', fillOn: true, fillColor: '#166786', strokeOn: true, strokeColor: '#0E4A62', textColor: '#FFFFFF' },
+  { name: 'Bos', fillOn: true, fillColor: '#1F7A34', strokeOn: true, strokeColor: '#14572A', textColor: '#FFFFFF' },
+  { name: 'Orchidee', fillOn: true, fillColor: '#9E3396', strokeOn: true, strokeColor: '#6F2468', textColor: '#FFFFFF' },
+  { name: 'Hemel', fillOn: true, fillColor: '#0C8CC2', strokeOn: true, strokeColor: '#075C80', textColor: '#FFFFFF' },
+  { name: 'Mandarijn', fillOn: true, fillColor: '#DB6122', strokeOn: true, strokeColor: '#9C4210', textColor: '#FFFFFF' },
+  { name: 'Roze', fillOn: true, fillColor: '#D13A72', strokeOn: true, strokeColor: '#AD285A', textColor: '#FFFFFF' },
+  { name: 'Alleen omtrek', fillOn: false, fillColor: '#FFFFFF', strokeOn: true, strokeColor: '#444954', textColor: '#2A3040' },
+].map((p) => ({ strokeW: 3, fillTransp: 0, ...p })); // op positie 8 staat 'Aangepast' (geen kleurstelling maar het openen van de ontwerpopties)
 
 const r1 = (v) => Math.round(v * 10) / 10;
 const HEX = /^#[0-9a-f]{6}$/i;
