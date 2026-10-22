@@ -95,7 +95,7 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
     <input type="file" id="imageInput" accept="image/png,image/jpeg,image/gif,image/webp,image/avif" hidden>
   </div>
 
-  <main id="board" class="board<?= $snap ? ' snap' : '' ?>" aria-label="Notitiebord" style="--zoom: <?= $zoom ?>; --tx: <?= $panX ?>px; --ty: <?= $panY ?>px"><div id="world" class="world"></div></main>
+  <main id="board" class="board<?= $snap ? ' snap' : '' ?>" aria-label="Notitiebord" ><div id="world" class="world" style="transform: translate(<?= $panX ?>px, <?= $panY ?>px) scale(<?= $zoom ?>)"></div></main>
 
   <dialog id="noteDialog">
     <form id="noteForm" method="dialog">

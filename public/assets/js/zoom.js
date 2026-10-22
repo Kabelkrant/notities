@@ -1,4 +1,4 @@
-import { ZOOM_STEPS, ZOOM_MIN, ZOOM_MAX, items, els, selected, state } from './state.js';
+import { ZOOM_STEPS, ZOOM_MIN, ZOOM_MAX, GRID, items, els, selected, state } from './state.js';
 import { $, board, world } from './ui.js';
 import { clearSelection } from './selection.js';
 
@@ -24,10 +24,12 @@ export function visibleWorld() {
 }
 
 function apply() {
-  board.style.setProperty('--zoom', state.zoom);
-  board.style.setProperty('--tx', state.tx + 'px');
-  board.style.setProperty('--ty', state.ty + 'px');
+  // Alleen de transform van de wereld en directe stijlen op losse elementen: een (overgeërfde) CSS-variabele op het bord zou bij elk frame
+  // de stijl van alle items opnieuw laten berekenen, en dat kost bij een groot bord tientallen milliseconden per frame.
   world.style.transform = `translate(${state.tx}px, ${state.ty}px) scale(${state.zoom})`;
+  origin.style.transform = `scale(${1 / state.zoom})`; // het 🎯 houdt een vaste schermgrootte
+  board.style.backgroundSize = `${GRID * state.zoom}px ${GRID * state.zoom}px`; // puntenraster van snap to grid
+  board.style.backgroundPosition = `${state.tx}px ${state.ty}px`;
   updateButtons();
   updateBars();
   saveView();
