@@ -1,4 +1,4 @@
-import { items, els, pendingDelete } from './state.js';
+import { items, els, pendingDelete, selected } from './state.js';
 import { board } from './ui.js';
 import { needsLightText } from './color.js';
 import { arrowSvg } from './arrowshape.js';
@@ -151,6 +151,7 @@ export function upsert(n) {
 
 export function remove(id) {
   items.delete(id);
+  selected.delete(id);
   els.get(id)?.remove();
   els.delete(id);
 }

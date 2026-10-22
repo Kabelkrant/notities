@@ -14,6 +14,7 @@ export const COLORS = ['#FFF59D', '#FFCC80', '#F48FB1', '#CE93D8', '#90CAF9', '#
 
 export const items = new Map();   // id -> data (notitie of afbeelding)
 export const els = new Map();     // id -> element
+export const selected = new Set();      // ids van geselecteerde items
 export const pendingDelete = new Map(); // id -> {timer, commit}
 
 export const state = {

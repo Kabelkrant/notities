@@ -1,4 +1,5 @@
-import { items, state } from './state.js';
+import { items, els, state, selected } from './state.js';
+import { toggleSelected, clearSelection } from './selection.js';
 import { board, reportError } from './ui.js';
 import { api } from './api.js';
 import { poll } from './sync.js';
@@ -14,6 +15,13 @@ board.addEventListener('pointerdown', (e) => {
   const item = e.target.closest('.item');
   if (!item || e.button > 0) return;
   const n = items.get(Number(item.dataset.id));
+
+  if ((e.ctrlKey || e.metaKey) && !e.target.closest('button, a')) { // Ctrl+klik: item aan/uit de selectie
+    toggleSelected(n.id);
+    e.preventDefault();
+    return;
+  }
+  if (!selected.has(n.id)) clearSelection();
 
   const rot = e.target.closest('.rotate-handle');
   if (rot) {
@@ -40,7 +48,9 @@ board.addEventListener('pointerdown', (e) => {
   if (e.target.closest('button, a')) return;
   // notities sleep je alleen via de kop; de tekst blijft selecteerbaar
   if (item.classList.contains('note') && !e.target.closest('.note-head')) return;
-  drag = { item, n, sx: e.clientX, sy: e.clientY, ox: n.x, oy: n.y, moved: false, id: e.pointerId };
+  // een geselecteerd item sleept de hele selectie mee
+  const group = selected.has(n.id) ? [...selected].filter((id) => els.has(id)).map((id) => ({ n: items.get(id), el: els.get(id), ox: items.get(id).x, oy: items.get(id).y })) : [{ n, el: item, ox: n.x, oy: n.y }];
+  drag = { item, n, group, sx: e.clientX, sy: e.clientY, ox: n.x, oy: n.y, moved: false, id: e.pointerId };
   item.setPointerCapture(e.pointerId);
 });
 
@@ -96,17 +106,20 @@ board.addEventListener('pointermove', (e) => {
   if (!drag.moved && Math.hypot(dx, dy) * state.zoom < 4) return;
   if (!drag.moved) {
     drag.moved = true; state.busy = true;
-    drag.item.classList.add('dragging');
     showGrid(drag.n.type === 'note');
     const focused = document.activeElement;
-    board.appendChild(drag.item); // naar voren; herstel daarna de focus
+    for (const g of drag.group) { g.el.classList.add('dragging'); board.appendChild(g.el); } // naar voren; herstel daarna de focus
     if (focused === drag.item) drag.item.focus({ preventScroll: true });
   }
+  // de verschuiving volgt het raster van het gesleepte item; geen enkel item mag links of boven het bord uitkomen
   const grid = drag.n.type === 'note' ? snapTo : (v) => v;
-  drag.n.x = Math.max(0, grid(Math.round(drag.ox + dx)));
-  drag.n.y = Math.max(0, grid(Math.round(drag.oy + dy)));
-  drag.item.style.left = drag.n.x + 'px';
-  drag.item.style.top = drag.n.y + 'px';
+  const ddx = Math.max(grid(Math.round(drag.ox + dx)) - drag.ox, -Math.min(...drag.group.map((g) => g.ox)));
+  const ddy = Math.max(grid(Math.round(drag.oy + dy)) - drag.oy, -Math.min(...drag.group.map((g) => g.oy)));
+  for (const g of drag.group) {
+    g.n.x = g.ox + ddx; g.n.y = g.oy + ddy;
+    g.el.style.left = g.n.x + 'px';
+    g.el.style.top = g.n.y + 'px';
+  }
 });
 
 function endPointer(e) {
@@ -123,11 +136,11 @@ function endPointer(e) {
     return;
   }
   if (!drag || e.pointerId !== drag.id) return;
-  const { n, item, moved } = drag;
+  const { group, moved } = drag;
   drag = null; state.busy = false;
-  item.classList.remove('dragging');
+  for (const g of group) g.el.classList.remove('dragging');
   showGrid(false);
-  if (moved) saveMove(n); // alleen opslaan als er echt is versleept
+  if (moved) saveMoves(group.map((g) => g.n)); // alleen opslaan als er echt is versleept
 }
 board.addEventListener('pointerup', endPointer);
 board.addEventListener('pointercancel', endPointer);
@@ -135,6 +148,16 @@ board.addEventListener('pointercancel', endPointer);
 export async function saveMove(n) {
   try {
     await api({ action: 'move', id: n.id, x: n.x, y: n.y });
+    poll();
+  } catch (err) {
+    reportError(new Error('Positie opslaan mislukt: ' + err.message));
+  }
+}
+
+async function saveMoves(list) {
+  if (list.length === 1) return saveMove(list[0]);
+  try {
+    await Promise.all(list.map((n) => api({ action: 'move', id: n.id, x: n.x, y: n.y })));
     poll();
   } catch (err) {
     reportError(new Error('Positie opslaan mislukt: ' + err.message));
