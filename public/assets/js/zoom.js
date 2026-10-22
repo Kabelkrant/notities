@@ -96,14 +96,29 @@ export function reveal(el, margin = 24) {
   run();
 }
 
-// Wiel/touchpad: zoomen op de cursor. Pinch op een touchpad komt binnen als wiel met Ctrl.
+// Het zicht een stuk verschuiven; zacht (de camera loopt er naartoe) of direct (bij kleine, continue stapjes van een touchpad)
+function nudge(dx, dy, smooth = true) {
+  if (!smooth) return panBy(dx, dy);
+  if (anchor) { anchor.sx += dx; anchor.sy += dy; return run(); } // een lopende zoom schuift gewoon mee
+  slide = { tx: (slide?.tx ?? state.tx) + dx, ty: (slide?.ty ?? state.ty) + dy };
+  run();
+}
+
+// Wiel en touchpad: gewoon scrollen verschuift het zicht, zoals scrollen in de browser (het wiel verticaal, Shift+wiel horizontaal, een touchpad
+// in alle richtingen). Zoomen gebeurt alleen met Ctrl (of Cmd) ingedrukt, op de cursor. Een pinch op een touchpad komt binnen als wiel met Ctrl en zoomt dus ook.
 board.addEventListener('wheel', (e) => {
-  e.preventDefault();
-  if (state.busy) return; // niet zoomen tijdens slepen, schalen of roteren van een item: de muis zou van het item losraken
-  const px = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
-  const d = clamp(e.deltaY * px, -160, 160);
-  const isPinch = e.ctrlKey && Math.abs(e.deltaY) < 20; // een echte pinch geeft kleine delta's; Ctrl + muiswiel gewoon wielsnelheid
-  setZoom(goal * Math.exp(-d * (isPinch ? PINCH_K : WHEEL_K)), e.clientX, e.clientY);
+  e.preventDefault(); // anders kan een horizontale veeg 'terug' in de browsergeschiedenis geven, en zoomt Ctrl+wiel de hele pagina
+  if (state.busy || pinch.active) return; // niet tijdens slepen, schalen of roteren van een item: de muis zou van het item losraken
+  const unit = e.deltaMode === 1 ? 19 : e.deltaMode === 2 ? rect().height : 1; // regels en pagina's omrekenen naar pixels
+  if (e.ctrlKey || e.metaKey) {
+    const d = clamp(e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1), -160, 160);
+    const isPinch = e.ctrlKey && Math.abs(e.deltaY) < 20; // een echte pinch geeft kleine delta's; Ctrl + muiswiel gewoon wielsnelheid
+    setZoom(goal * Math.exp(-d * (isPinch ? PINCH_K : WHEEL_K)), e.clientX, e.clientY);
+    return;
+  }
+  let dx = e.deltaX * unit, dy = e.deltaY * unit;
+  if (e.shiftKey && !dx) { dx = dy; dy = 0; } // Shift+wiel: horizontaal, zoals in de browser
+  nudge(-dx, -dy, e.deltaMode !== 0 || Math.abs(dx) + Math.abs(dy) >= 50); // wielstappen zacht, touchpad direct
 }, { passive: false });
 
 // Pinch op een touchscreen: twee vingers (ook boven items) zoomen rechtstreeks mee met de afstand, en pannen met het midden ertussen.
@@ -232,9 +247,7 @@ addEventListener('keydown', (e) => {
   // de inhoud schuift tegen de pijl in: pijl rechts brengt het zicht naar rechts
   const dx = e.key === 'ArrowRight' ? -step : e.key === 'ArrowLeft' ? step : 0, dy = e.key === 'ArrowDown' ? -step : e.key === 'ArrowUp' ? step : 0;
   if (pinch.active) return;
-  if (anchor) { anchor.sx += dx; anchor.sy += dy; return run(); } // een lopende zoom schuift gewoon mee
-  slide = { tx: (slide?.tx ?? state.tx) + dx, ty: (slide?.ty ?? state.ty) + dy };
-  run();
+  nudge(dx, dy);
 });
 
 // Een item dat via Tab focus krijgt maar buiten beeld staat, schuift in beeld
