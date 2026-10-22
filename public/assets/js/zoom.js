@@ -152,7 +152,8 @@ export const isChosen = (item) => item.matches(':focus-within') || selected.has(
 board.addEventListener('pointerdown', (e) => {
   const middle = e.button === 1, item = e.target.closest?.('.item');
   const touch = e.pointerType === 'touch';
-  const touchPan = item && !e.target.closest('button, a, .rotate-handle, .resize-handle')
+  const select = e.ctrlKey || e.metaKey; // Ctrl+klik op een item zet het in de selectie (drag.js), dat is geen pan of tik
+  const touchPan = !select && item && !e.target.closest('button, a, .rotate-handle, .resize-handle')
     && (!isChosen(item) || (touch && item.classList.contains('note') && !e.target.closest('.note-head'))); // op touch pant ook de tekst van een gekozen notitie
   if (pinch.active || (!middle && !(e.button === 0 && (e.target === board || touchPan)))) return;
   pan = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false, tap: touchPan ? item : null };
