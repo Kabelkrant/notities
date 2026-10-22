@@ -156,6 +156,10 @@ function endTouch(e) {
 }
 board.addEventListener('pointerup', endTouch, true);
 board.addEventListener('pointercancel', endTouch, true);
+// raakt een aanraking onderweg kwijt (venster niet meer actief), dan mag de pinch niet blijven hangen en alles blokkeren
+const resetTouches = () => { if (touches.size || pinch.active) { touches.clear(); pinch.active = false; pz = null; state.busy = false; } };
+addEventListener('blur', resetTouches);
+document.addEventListener('visibilitychange', () => { if (document.hidden) resetTouches(); });
 
 // Pannen: slepen op leeg bord. Het handje verschijnt pas zodra er echt gesleept wordt. (De middelste muisknop doet iets anders: zie verderop.)
 // Een item moet eerst gekozen zijn (aangeklikt of aangetikt, of geselecteerd met Ctrl) voordat je het kunt verslepen, zie drag.js:

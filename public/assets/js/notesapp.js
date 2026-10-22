@@ -178,7 +178,7 @@ function renderListNow() {
   });
   for (const el of keepItems.values()) el.remove();
   for (const s of keepSec.values()) s.remove();
-  const first = list.querySelector('.na-item');
+  const first = list.querySelector('.na-folder:not(.collapsed) .na-item'); // niet in een ingeklapte map beginnen
   if (activeId === null && first && !matchMedia('(max-width: 720px)').matches) select(Number(first.dataset.id)); // desktop: meteen de eerste notitie openen
 }
 
@@ -373,7 +373,7 @@ async function saveLayout() {
   for (const s of secs) for (const el of itemsOf(s)) notes.push([Number(el.dataset.id), Number(s.dataset.folder)]);
   state.folders = ids.map((id) => state.folders.find((f) => f.id === id)).filter(Boolean); // lokaal alvast bijwerken
   const toggled = [];
-  notes.forEach(([id, fid], i) => { const n = items.get(id); if (n) { if ((n.folder === TRASH) !== (fid === TRASH)) toggled.push(n); n.order = i; n.folder = fid; } });
+  notes.forEach(([id, fid]) => { const n = items.get(id); if (n) { if ((n.folder === TRASH) !== (fid === TRASH)) toggled.push(n); n.folder = fid; } });
   for (const n of toggled) upsert(n); // naar de Prullenbak: van het canvas af; eruit: terug op het canvas
   try { await api({ action: 'organize', folders: ids, notes }); poll(); }
   catch (err) { setSaved('Indeling opslaan mislukt: ' + err.message); }

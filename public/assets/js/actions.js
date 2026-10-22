@@ -4,7 +4,7 @@ import { board, reportError, showToast, hideToast } from './ui.js';
 import { api } from './api.js';
 import { paint, remove, upsert, notifyChanged } from './render.js';
 import { poll } from './sync.js';
-import { saveMove, saveItem } from './drag.js';
+import { saveMoves, saveItem } from './drag.js';
 import { deselect } from './selection.js';
 import { TYPES, typeLabel } from './types.js';
 
@@ -23,6 +23,8 @@ board.addEventListener('dblclick', (e) => {
 });
 // Pijltjes en Delete gelden voor de hele selectie als het gefocuste (of, zonder focus, het eerste geselecteerde) item daarin zit
 const groupOf = (id) => selected.has(id) ? [...selected].filter((i) => els.has(i) && !els.get(i).hidden) : [id];
+const queuedMoves = new Set();
+let moveTimer = 0;
 function moveKey(e, id) {
   const lead = items.get(id);
   const snapped = state.snap && lead.type === 'note';
@@ -34,9 +36,14 @@ function moveKey(e, id) {
     const n = items.get(i);
     n.x += dx; n.y += dy;
     paint(els.get(i), n);
-    clearTimeout(n._saveTimer);
-    n._saveTimer = setTimeout(() => saveMove(n), 400);
+    queuedMoves.add(i);
   }
+  clearTimeout(moveTimer);
+  moveTimer = setTimeout(() => { // na een korte pauze alles in één keer opslaan
+    const list = [...queuedMoves].map((i) => items.get(i)).filter(Boolean);
+    queuedMoves.clear();
+    saveMoves(list);
+  }, 400);
   if (snapped) { showGrid(true); clearTimeout(showGrid.t); showGrid.t = setTimeout(() => showGrid(false), 700); }
 }
 board.addEventListener('keydown', (e) => {
@@ -63,6 +70,7 @@ addEventListener('keydown', (e) => {
 
 // Weggooien met ongedaan maken. Notities gaan eerst naar de Prullenbak (meteen van het canvas af); uit de Prullenbak, en andere items
 // (afbeelding, vorm, klok, ...), worden ze na 6 seconden definitief verwijderd. Meerdere items vormen één melding en één Ongedaan maken.
+let toastOwner = null; // welke weggooi-actie de melding nu toont
 export function softDelete(ids) {
   ids = ids.filter((id) => items.has(id));
   if (!ids.length) return;
@@ -101,7 +109,11 @@ export function softDelete(ids) {
         .catch((err) => { hiddenIds.delete(id); if (els.get(id)) els.get(id).hidden = false; notifyChanged(); reportError(err); });
     }
   };
-  const timer = perm.length ? setTimeout(() => { hideToast(); commit(); }, UNDO_MS) : 0;
+  // Na de bedenktijd verdwijnt de melding (ook als alleen notities naar de Prullenbak gingen) en wordt een definitieve verwijdering afgerond;
+  // een nieuwere melding blijft staan als die intussen de plek van deze heeft ingenomen
+  const token = {};
+  toastOwner = token;
+  const timer = setTimeout(() => { if (toastOwner === token) hideToast(); commit(); }, UNDO_MS);
   for (const id of perm) pendingDelete.set(id, { timer, commit });
   showToast(text, () => {
     clearTimeout(timer); done = true;

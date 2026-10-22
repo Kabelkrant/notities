@@ -64,15 +64,20 @@ final class JsonStore
     }
 
     /**
-     * Zet de volgorde van de notitie-app (veld 'order') zonder 'updated' aan te raken: de stapelvolgorde op het canvas hangt van 'updated' af
-     * en moet door het herordenen van de lijst niet veranderen.
-     * @param array<int,int> $order notitie-id => volgnummer
+     * Verplaatst meerdere items in één keer (slepen van een selectie op het canvas): één schrijfactie in plaats van één per item.
+     * @param list<array{0:int,1:int,2:int}> $moves [id, x, y]
      */
-    public function setOrder(array $order): void
+    public function moveMany(array $moves): int
     {
-        $this->read(function (array &$d) use ($order) {
-            foreach ($d['notes'] as &$n) if (isset($order[$n['id']])) $n['order'] = $order[$n['id']];
-            return null;
+        return $this->read(function (array &$d) use ($moves) {
+            $to = [];
+            foreach ($moves as [$id, $x, $y]) $to[$id] = [$x, $y];
+            $n = 0;
+            $now = date('Y-m-d H:i:s');
+            foreach ($d['notes'] as &$note) {
+                if (isset($to[$note['id']])) { [$note['x'], $note['y']] = $to[$note['id']]; $note['updated'] = $now; $n++; }
+            }
+            return $n;
         }, write: true);
     }
 
@@ -129,9 +134,10 @@ final class JsonStore
     }
 
     /**
-     * Zet in één keer de volgorde van de mappen en de indeling en volgorde van de notities.
+     * Zet in één keer de volgorde van de mappen en in welke map elke notitie staat. De volgorde van de notities zelf is niet instelbaar:
+     * binnen een map staan ze op laatst inhoudelijk bijgewerkt (zie 'edited').
      * @param list<int> $folderOrder map-id's in de nieuwe volgorde
-     * @param list<array{0:int,1:int}> $layout [notitie-id, map-id] in de nieuwe volgorde (van boven naar beneden)
+     * @param list<array{0:int,1:int}> $layout [notitie-id, map-id]
      */
     public function organize(array $folderOrder, array $layout): void
     {
@@ -142,25 +148,20 @@ final class JsonStore
             foreach ($folderOrder as $fid) if (isset($byId[$fid])) { $sorted[] = $byId[$fid]; unset($byId[$fid]); }
             $d['folders'] = array_merge($sorted, array_values($byId)); // onbekende of vergeten mappen blijven achteraan staan
             $known = array_column($d['folders'], 'id');
-            $pos = [];
-            foreach ($layout as $i => [$nid, $fid]) $pos[$nid] = [$i, in_array($fid, $known, true) ? $fid : 0];
-            foreach ($d['notes'] as &$n) if (isset($pos[$n['id']])) { $n['order'] = $pos[$n['id']][0]; $n['folder'] = $pos[$n['id']][1]; }
+            $to = [];
+            foreach ($layout as [$nid, $fid]) $to[$nid] = in_array($fid, $known, true) ? $fid : 0;
+            foreach ($d['notes'] as &$n) if (($n['type'] ?? 'note') === 'note' && isset($to[$n['id']])) $n['folder'] = $to[$n['id']];
             return null;
         }, write: true);
     }
 
-    /** Verplaatst een notitie bovenaan een andere map. */
+    /** Verplaatst een notitie naar een andere map (een onbekende map wordt (niet ingedeeld)). Alleen notities hebben een map. */
     public function setNoteFolder(int $id, int $folder): ?array
     {
         return $this->read(function (array &$d) use ($id, $folder) {
-            $known = array_column($this->folderList($d), 'id');
-            if (!in_array($folder, $known, true)) $folder = 0;
-            $min = null;
-            foreach ($d['notes'] as $n) {
-                if (($n['type'] ?? 'note') === 'note' && ($n['folder'] ?? 0) === $folder) $min = min($min ?? PHP_INT_MAX, (int)($n['order'] ?? -$n['id']));
-            }
+            if (!in_array($folder, array_column($this->folderList($d), 'id'), true)) $folder = 0;
             foreach ($d['notes'] as &$n) {
-                if ($n['id'] === $id) { $n['folder'] = $folder; $n['order'] = $min === null ? 0 : $min - 1; return $n; }
+                if ($n['id'] === $id && ($n['type'] ?? 'note') === 'note') { $n['folder'] = $folder; return $n; }
             }
             return null;
         }, write: true);

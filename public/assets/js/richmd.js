@@ -311,6 +311,7 @@ function normalize(node) {
 
 // true als de notitie zonder verlies in de visuele editor kan: geen onbekende opmaak, en heen-en-weer vertalen verandert niets aan de inhoud
 export function canEditVisually(md) {
+  if ((String(md ?? '').match(/[*_+[]/g) || []).length > 2000) return false; // pathologisch veel opmaaktekens: het zoeken naar sluittekens wordt traag; de Markdown-editor kan dat wel
   const first = parseMarkdown(md);
   if (first.unsupported) return false;
   const again = parseMarkdown(serializeDoc(first.doc));

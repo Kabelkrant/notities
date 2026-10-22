@@ -3,7 +3,12 @@ declare(strict_types=1);
 require __DIR__ . '/../src/bootstrap.php';
 start_session();
 send_robots_header();
+send_security_headers();
 header('Cache-Control: private, no-store');
+// Content-Security-Policy: alleen eigen scripts (de import map krijgt een nonce), geen plug-ins, niet in een frame en formulieren alleen naar onszelf.
+// Inline stijlen blijven toegestaan (items krijgen hun positie en kleur als stijl); afbeeldingen mogen van onszelf, data: en blob: (verkleinen vóór uploaden) komen.
+$nonce = base64_encode(random_bytes(16));
+header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-$nonce'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
 
 $authed = Auth::check();
 $appName = Auth::appName();
@@ -347,7 +352,7 @@ foreach (array_merge(glob(__DIR__ . '/assets/js/*.js') ?: [], glob(__DIR__ . '/a
   </dialog>
 
 <?php endif; ?>
-  <script type="importmap"><?= json_encode(['imports' => $imports], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
+  <script type="importmap" nonce="<?= $nonce ?>"><?= json_encode(['imports' => $imports], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
   <script id="boot" type="application/json"><?= json_encode($boot, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
   <script src="assets/app.js?v=<?= $v('assets/app.js') ?>" type="module"></script>
 </body>

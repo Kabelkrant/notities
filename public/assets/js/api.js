@@ -6,6 +6,7 @@ export async function api(payload, opts = {}) {
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
     body: JSON.stringify(payload),
     keepalive: opts.keepalive || false,
+    signal: AbortSignal.timeout(30000), // een hangende verbinding mag het opslaan en het wisselen van notitie niet eindeloos blokkeren
   });
   const data = await res.json().catch(() => ({}));
   if (res.status === 401) location.reload(); // sessie verlopen: inlogscherm

@@ -16,7 +16,7 @@ Een bord met notities, afbeeldingen, vormen, klokken en WordArt die je vrij kunt
 - Snap to grid (menu ☰): notities verplaatsen in stappen van 20 px, met een raster dat alleen tijdens het verplaatsen zichtbaar is; ook onthouden in een cookie
 - Gelijktijdig bewerken: wie een notitie opslaat die intussen door iemand anders is gewijzigd, krijgt een waarschuwing en kan bewust overschrijven
 - Over-dialoog met versie-informatie en bijwerken vanaf GitHub (zie Bijwerken)
-- Beveiligd met een wachtwoord (zie Inloggen)
+- Beveiligd met een wachtwoord (zie Inloggen); verder een Content-Security-Policy (alleen eigen scripts, niet in een frame), CSRF-controle, Origin-controle en snelheidslimieten per IP. Een geselecteerde groep verplaatsen of met de toetsen schuiven telt als één schrijfactie voor die limiet
 - Verwijderen met ongedaan maken (6 seconden)
 - Live-sync tussen apparaten via polling (elke 4 seconden)
 

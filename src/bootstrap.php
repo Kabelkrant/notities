@@ -22,6 +22,12 @@ foreach ([
     defined($k) || define($k, $v);
 }
 
+/** Basisheaders tegen MIME-sniffing en het lekken van adressen naar andere sites. */
+function send_security_headers(): void {
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: same-origin');
+}
+
 function send_robots_header(): void {
     header('X-Robots-Tag: noindex, nofollow, noarchive, nosnippet');
 }
@@ -132,7 +138,7 @@ function render_body(string $text): string {
 }
 
 /** @param array<string,mixed> $r */
-function note_to_array(array $r): array {
+function note_to_array(array $r, bool $withHtml = true): array {
     $base = [
         'id' => (int)$r['id'],
         'type' => $r['type'] ?? 'note',
@@ -174,19 +180,18 @@ function note_to_array(array $r): array {
     return $base + [
         'title' => $r['title'],
         'body' => $r['body'],
-        'html' => render_body($r['body']),
+        'html' => $withHtml ? render_body($r['body']) : '', // de HTML is niet nodig om te zien of er iets veranderd is
         'color' => $r['color'],
-        'order' => (int)($r['order'] ?? -$r['id']), // volgorde in de notitie-app (standaard nieuwste eerst); los van positie en stapelvolgorde op het canvas
         'edited' => date('c', strtotime((string)($r['edited'] ?? $r['updated'])) ?: time()), // laatste inhoudelijke bewerking (oude notities: het laatste wijzigingsmoment)
         'folder' => (int)($r['folder'] ?? 0),       // map in de notitie-app; 0 = (niet ingedeeld), -1 = Prullenbak
     ];
 }
 
 /** @return list<array<string,mixed>> */
-function all_notes(): array {
+function all_notes(bool $withHtml = true): array {
     $rows = array_map(fn($r) => ($r['type'] ?? '') === 'arrow' ? shape_from_arrow($r) : $r, store()->all());
     $known = array_filter($rows, fn($r) => in_array($r['type'] ?? 'note', ITEM_TYPES, true));
-    return array_map('note_to_array', array_values($known));
+    return array_map(fn($r) => note_to_array($r, $withHtml), array_values($known));
 }
 
 /** De oude Pijl-widget bestaat niet meer: een bestaande pijl wordt een vorm 'pijl' met dezelfde afmetingen, rotatie en kleur. */
@@ -204,7 +209,7 @@ function all_folders(): array {
 
 function notes_version(array $notes, array $folders = []): string {
     return md5(json_encode([$folders, array_map(
-        fn($n) => [$n['id'], $n['type'], $n['title'] ?? '', $n['body'] ?? '', $n['color'] ?? '', $n['file'] ?? '', $n['w'] ?? 0, $n['h'] ?? 0, $n['x'], $n['y'], $n['rot'] ?? 0, $n['style'] ?? '', $n['tz'] ?? '', $n['label'] ?? '', $n['seconds'] ?? null, $n['text'] ?? '', $n['shape'] ?? '', $n['target'] ?? 0, $n['showDate'] ?? null, $n['type'] === 'shape' ? $n : null, $n['order'] ?? null, $n['folder'] ?? null, $n['edited'] ?? null],
+        fn($n) => [$n['id'], $n['type'], $n['title'] ?? '', $n['body'] ?? '', $n['color'] ?? '', $n['file'] ?? '', $n['w'] ?? 0, $n['h'] ?? 0, $n['x'], $n['y'], $n['rot'] ?? 0, $n['style'] ?? '', $n['tz'] ?? '', $n['label'] ?? '', $n['seconds'] ?? null, $n['text'] ?? '', $n['shape'] ?? '', $n['target'] ?? 0, $n['showDate'] ?? null, $n['type'] === 'shape' ? $n : null, $n['folder'] ?? null, $n['edited'] ?? null],
         $notes
     )]));
 }

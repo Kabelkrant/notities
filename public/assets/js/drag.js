@@ -156,10 +156,12 @@ export async function saveMove(n) {
   }
 }
 
-async function saveMoves(list) {
+// Meerdere items in één verzoek opslaan (anders telt elk item voor de schrijflimiet van de server)
+export async function saveMoves(list) {
+  if (!list.length) return;
   if (list.length === 1) return saveMove(list[0]);
   try {
-    await Promise.all(list.map((n) => api({ action: 'move', id: n.id, x: n.x, y: n.y })));
+    await api({ action: 'move_many', moves: list.map((n) => [n.id, n.x, n.y]) });
     poll();
   } catch (err) {
     reportError(new Error('Positie opslaan mislukt: ' + err.message));

@@ -6,6 +6,7 @@ start_session();
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 send_robots_header();
+send_security_headers();
 
 function respond(array $data, int $status = 200): never {
     http_response_code($status);
@@ -163,7 +164,7 @@ function item_changes(array $cur, array $in): array {
                 if ($tz !== '' && (strlen($tz) > 64 || !preg_match('~^[A-Za-z0-9_+\-]+(/[A-Za-z0-9_+\-]+){0,2}$~', $tz))) respond(['error' => 'Ongeldige tijdzone'], 422);
                 return $tz;
             })(),
-            'mtext' => mb_substr(str_replace("\r", '', preg_replace('/[\x00-\x09\x0B-\x1F\x7F]/u', '', (string)$v)), 0, $spec[1]), // tekst met regeleinden
+            'mtext' => mb_substr(str_replace("\r", '', (string)(preg_replace('/[\x00-\x09\x0B-\x1F\x7F]/u', '', (string)$v) ?? '')), 0, $spec[1]), // tekst met regeleinden
             'text' => (function () use ($v, $spec) {
                 $t = mb_substr(trim((string)preg_replace('/[\x00-\x1F\x7F]/u', '', (string)$v)), 0, $spec[1]);
                 if (($spec[2] ?? false) && $t === '') respond(['error' => 'Vul een tekst in'], 422);
@@ -183,12 +184,14 @@ try {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         if (!Auth::check()) respond(['error' => 'Niet ingelogd'], 401);
         if (isset($_GET['about'])) respond(Updater::about());
-        $notes = all_notes();
+        $notes = all_notes(false); // zonder HTML: dat is niet nodig om de versie te bepalen, en deze controle gebeurt elke paar seconden per scherm
         $folders = all_folders();
         $version = notes_version($notes, $folders);
         if (($_GET['v'] ?? '') === $version) {
             respond(['changed' => false, 'version' => $version]);
         }
+        foreach ($notes as &$n) if ($n['type'] === 'note') $n['html'] = render_body($n['body']);
+        unset($n);
         respond(['changed' => true, 'version' => $version, 'notes' => $notes, 'folders' => $folders]);
     }
 
@@ -266,9 +269,10 @@ try {
             require_feature('NOTES', 'notities');
             [$t, $b, $c] = $fields();
             check_capacity(false);
-            // nieuwe notities komen bovenaan de lijst van de notitie-app (volgnummer lager dan alle bestaande)
-            $order = array_reduce($store->all(), fn($m, $r) => ($r['type'] ?? 'note') === 'note' ? min($m, (int)($r['order'] ?? -$r['id'])) : $m, PHP_INT_MAX);
-            $n = $store->create(['type' => 'note', 'title' => $t, 'body' => $b, 'color' => $c, 'x' => $coord('x'), 'y' => $coord('y'), 'edited' => date('c'), 'order' => $order === PHP_INT_MAX ? 0 : $order - 1, 'folder' => in_array((int)($in['folder'] ?? 0), array_column($store->folders(), 'id'), true) ? (int)$in['folder'] : 0]);
+            // een nieuwe notitie staat in de gevraagde map (onbekend of de Prullenbak: (niet ingedeeld)); binnen de map staat hij op bewerkdatum, dus bovenaan
+            $folder = (int)($in['folder'] ?? 0);
+            if ($folder === -1 || !in_array($folder, array_column($store->folders(), 'id'), true)) $folder = 0;
+            $n = $store->create(['type' => 'note', 'title' => $t, 'body' => $b, 'color' => $c, 'x' => $coord('x'), 'y' => $coord('y'), 'edited' => date('c'), 'folder' => $folder]);
             respond(['note' => note_to_array($n)], 201);
 
         case 'create_item':
@@ -334,6 +338,14 @@ try {
         case 'move':
             $found($store->update($id, ['x' => $coord('x'), 'y' => $coord('y')]));
             respond(['ok' => true]);
+
+        case 'move_many': // een geselecteerde groep in één keer verplaatsen (telt als één schrijfactie voor de limiet)
+            $moves = [];
+            foreach (is_array($in['moves'] ?? null) ? $in['moves'] : [] as $m) {
+                if (is_array($m) && count($m) === 3) $moves[] = [(int)$m[0], clamp_int($m[1], -100000, 100000), clamp_int($m[2], -100000, 100000)];
+            }
+            if (count($moves) > MAX_ITEMS) respond(['error' => 'Te veel items'], 422);
+            respond(['ok' => true, 'moved' => $store->moveMany($moves)]);
 
         case 'self_update':
             if (($retry = Guard::rateLimit('update', 5)) !== null) too_many($retry);
