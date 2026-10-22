@@ -8,6 +8,7 @@ header('Cache-Control: private, no-store');
 $authed = Auth::check();
 $appName = Auth::appName();
 $notes = $authed ? all_notes() : [];
+$folders = $authed ? all_folders() : [];
 // Zicht op het bord uit de cookie 'view' (zoom,x,y; door app geschreven); server zet het meteen, zodat de pagina niet eerst op 100% laadt.
 // Oudere installaties hebben alleen de cookie 'zoom'.
 $view = array_map('floatval', array_pad(array_filter(explode(',', (string)($_COOKIE['view'] ?? '')), 'is_numeric'), 3, 0));
@@ -33,7 +34,8 @@ $boot = [
     'panX' => $panX,
     'panY' => $panY,
     'csrf' => csrf_token(),
-    'version' => notes_version($notes),
+    'version' => notes_version($notes, $folders),
+    'folders' => $folders,
     'notes' => $notes,
 ];
 $v = fn(string $f): int => (int)@filemtime(__DIR__ . '/' . $f);
@@ -106,9 +108,12 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
     <aside class="na-list-pane" aria-label="Lijst met notities">
       <div class="na-list-head">
         <h2>Notities</h2>
-        <button type="button" id="naNew" class="primary"<?= $allow['notes'] ? '' : ' hidden' ?>>+ Nieuw</button>
+        <span class="na-list-actions">
+          <button type="button" id="naNewFolder" title="Nieuwe map" aria-label="Nieuwe map">📁+</button>
+          <button type="button" id="naNew" class="primary"<?= $allow['notes'] ? '' : ' hidden' ?>>+ Nieuw</button>
+        </span>
       </div>
-      <div class="na-list" id="naList" role="listbox" aria-label="Notities" aria-orientation="vertical"></div>
+      <div class="na-list" id="naList" role="tree" aria-label="Mappen en notities"></div>
     </aside>
     <section class="na-editor-pane" aria-label="Notitie">
       <p class="na-empty" id="naEmpty">Kies een notitie in de lijst of maak een nieuwe.</p>
@@ -116,6 +121,7 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
         <div class="na-editor-head">
           <button type="button" id="naBack" class="na-back" aria-label="Terug naar de lijst" title="Terug naar de lijst">←</button>
           <input type="text" id="naTitle" maxlength="255" placeholder="Titel" aria-label="Titel">
+          <select id="naFolder" title="Map" aria-label="Map"></select>
           <span class="swatches" id="naSwatches" aria-label="Kleur"></span>
           <button type="button" id="naDelete" title="Verwijderen" aria-label="Verwijderen">🗑️</button>
         </div>

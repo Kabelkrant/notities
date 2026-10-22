@@ -184,11 +184,12 @@ try {
         if (!Auth::check()) respond(['error' => 'Niet ingelogd'], 401);
         if (isset($_GET['about'])) respond(Updater::about());
         $notes = all_notes();
-        $version = notes_version($notes);
+        $folders = all_folders();
+        $version = notes_version($notes, $folders);
         if (($_GET['v'] ?? '') === $version) {
             respond(['changed' => false, 'version' => $version]);
         }
-        respond(['changed' => true, 'version' => $version, 'notes' => $notes]);
+        respond(['changed' => true, 'version' => $version, 'notes' => $notes, 'folders' => $folders]);
     }
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -252,6 +253,11 @@ try {
         $color = valid_hex_color($in['color'] ?? null) ? $in['color'] : DEFAULT_COLOR;
         return [$title, $body, $color];
     };
+    $folderName = function () use ($in): string {
+        $name = trim(preg_replace('/[\x00-\x1F\x7F]/u', '', (string)($in['name'] ?? '')));
+        if ($name === '') respond(['error' => 'Geef de map een naam'], 422);
+        return mb_substr($name, 0, MAX_FOLDER_NAME);
+    };
     $coord = fn(string $k): int => clamp_int($in[$k] ?? 0, -100000, 100000);
     $found = fn(?array $n): array => $n ?? respond(['error' => 'Notitie niet gevonden'], 404);
 
@@ -262,7 +268,7 @@ try {
             check_capacity(false);
             // nieuwe notities komen bovenaan de lijst van de notitie-app (volgnummer lager dan alle bestaande)
             $order = array_reduce($store->all(), fn($m, $r) => ($r['type'] ?? 'note') === 'note' ? min($m, (int)($r['order'] ?? -$r['id'])) : $m, PHP_INT_MAX);
-            $n = $store->create(['type' => 'note', 'title' => $t, 'body' => $b, 'color' => $c, 'x' => $coord('x'), 'y' => $coord('y'), 'order' => $order === PHP_INT_MAX ? 0 : $order - 1]);
+            $n = $store->create(['type' => 'note', 'title' => $t, 'body' => $b, 'color' => $c, 'x' => $coord('x'), 'y' => $coord('y'), 'order' => $order === PHP_INT_MAX ? 0 : $order - 1, 'folder' => in_array((int)($in['folder'] ?? 0), array_column($store->folders(), 'id'), true) ? (int)$in['folder'] : 0]);
             respond(['note' => note_to_array($n)], 201);
 
         case 'create_item':
@@ -294,11 +300,32 @@ try {
             }
             respond(['note' => note_to_array($found($n))]);
 
-        case 'reorder': // volgorde van de notitie-app: lijst van notitie-id's, in de nieuwe volgorde
-            $ids = array_values(array_unique(array_map('intval', is_array($in['ids'] ?? null) ? $in['ids'] : [])));
-            if (count($ids) > 5000) respond(['error' => 'Te veel notities'], 422);
-            $store->setOrder(array_flip($ids));
+        case 'organize': // mappen en notities in één keer: volgorde van de mappen en per notitie de map, van boven naar beneden
+            $folderIds = array_values(array_map('intval', is_array($in['folders'] ?? null) ? $in['folders'] : []));
+            $layout = [];
+            foreach (is_array($in['notes'] ?? null) ? $in['notes'] : [] as $row) if (is_array($row) && count($row) === 2) $layout[] = [(int)$row[0], (int)$row[1]];
+            if (count($layout) > 5000 || count($folderIds) > 500) respond(['error' => 'Te veel items'], 422);
+            $store->organize($folderIds, $layout);
             respond(['ok' => true]);
+
+        case 'folder_create':
+            $name = $folderName();
+            if (count($store->folders()) >= MAX_FOLDERS) respond(['error' => 'Maximaal aantal mappen bereikt (' . MAX_FOLDERS . ')'], 409);
+            respond(['folder' => $store->createFolder($name), 'folders' => $store->folders()], 201);
+
+        case 'folder_rename':
+            if ($id === 0) respond(['error' => 'De map Algemeen kan niet hernoemd worden'], 400);
+            if (!$store->renameFolder($id, $folderName())) respond(['error' => 'Map niet gevonden'], 404);
+            respond(['folders' => $store->folders()]);
+
+        case 'folder_delete': // de notities in de map verhuizen naar Algemeen
+            if ($id === 0) respond(['error' => 'De map Algemeen kan niet verwijderd worden'], 400);
+            if (!$store->deleteFolder($id)) respond(['error' => 'Map niet gevonden'], 404);
+            respond(['folders' => $store->folders()]);
+
+        case 'note_folder': // een notitie bovenaan een andere map zetten
+            $n = $found($store->setNoteFolder($id, (int)($in['folder'] ?? 0)));
+            respond(['note' => note_to_array($n)]);
 
         case 'move':
             $found($store->update($id, ['x' => $coord('x'), 'y' => $coord('y')]));

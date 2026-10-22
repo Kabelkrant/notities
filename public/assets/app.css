@@ -338,3 +338,27 @@ body.mode-notes .board { visibility: hidden; } /* blijft bestaan (maten, plaatsi
   .na-back { display: inline-flex; }
   .na-list-head { padding-right: 4.5rem; }
 }
+
+/* Notitie-app: mappen (boomstructuur) */
+.na-list { gap: .2rem; }
+.na-list-actions { display: inline-flex; gap: .4rem; align-items: center; }
+.na-folder { display: flex; flex-direction: column; }
+.na-folder.dragging { position: relative; z-index: 3; opacity: .92; box-shadow: 0 10px 26px rgba(0,0,0,.3); border-radius: 10px; background: var(--bg); pointer-events: none; }
+.na-folder.drag-collapsed .na-fnotes { display: none; }
+.na-folder.collapsed .na-fnotes { display: none; }
+.na-fhead { display: flex; align-items: center; gap: .3rem; padding: .45rem .5rem .45rem .3rem; border-radius: 8px; cursor: pointer; user-select: none; -webkit-user-select: none; font-weight: 700; }
+.na-fhead:hover, .na-fhead:focus-visible { background: color-mix(in srgb, var(--accent) 10%, transparent); outline: none; }
+.na-fhead .na-grip { cursor: grab; }
+.na-chev { flex: none; width: 1rem; text-align: center; transition: transform .12s; font-size: .8rem; color: var(--muted); }
+.na-folder.collapsed .na-chev { transform: rotate(-90deg); }
+.na-fname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.na-fcount { flex: none; font-size: .78rem; font-weight: 400; color: var(--muted); }
+.na-factions { flex: none; display: inline-flex; gap: .2rem; opacity: 0; }
+.na-fhead:hover .na-factions, .na-fhead:focus-within .na-factions { opacity: 1; }
+@media (pointer: coarse) { .na-factions { opacity: .8; } }
+.na-factions button { padding: .1rem .35rem; font-size: .85rem; line-height: 1.2; border: none; background: transparent; }
+.na-factions button.confirm { background: var(--error); color: #fff; border-radius: 6px; }
+.na-rename { width: 100%; padding: .1rem .35rem; font: inherit; font-weight: 700; color: var(--text); background: var(--bg); border: 1px solid var(--accent); border-radius: 6px; }
+.na-fnotes { display: flex; flex-direction: column; gap: .4rem; padding: .15rem 0 .45rem .9rem; } /* notities springen in onder hun map */
+.na-folder[data-folder] .na-fnotes:empty { padding: 0; }
+.na-editor-head select { flex: 0 1 9rem; min-width: 0; padding: .4rem .5rem; color: var(--text); background: var(--bg); border: 1px solid color-mix(in srgb, var(--text) 20%, transparent); border-radius: 8px; }

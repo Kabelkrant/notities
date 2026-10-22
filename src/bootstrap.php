@@ -28,6 +28,8 @@ function send_robots_header(): void {
 
 const DEFAULT_COLOR = '#FFF59D';
 const MAX_TITLE = 255;
+const MAX_FOLDERS = 200;
+const MAX_FOLDER_NAME = 60;
 const MAX_BODY = 20000;
 const MIN_IMAGE_SIZE = 40;
 const MAX_IMAGE_SIZE = 5000;
@@ -175,6 +177,7 @@ function note_to_array(array $r): array {
         'html' => render_body($r['body']),
         'color' => $r['color'],
         'order' => (int)($r['order'] ?? -$r['id']), // volgorde in de notitie-app (standaard nieuwste eerst); los van positie en stapelvolgorde op het canvas
+        'folder' => (int)($r['folder'] ?? 0),       // map in de notitie-app; 0 = Algemeen
     ];
 }
 
@@ -194,9 +197,13 @@ function shape_from_arrow(array $r): array {
         'fillOn' => true, 'fillColor' => $color, 'fillTransp' => $outline ? 86 : 0] + array_diff_key($r, ['color' => 1, 'style' => 1]);
 }
 
-function notes_version(array $notes): string {
-    return md5(json_encode(array_map(
-        fn($n) => [$n['id'], $n['type'], $n['title'] ?? '', $n['body'] ?? '', $n['color'] ?? '', $n['file'] ?? '', $n['w'] ?? 0, $n['h'] ?? 0, $n['x'], $n['y'], $n['rot'] ?? 0, $n['style'] ?? '', $n['tz'] ?? '', $n['label'] ?? '', $n['seconds'] ?? null, $n['text'] ?? '', $n['shape'] ?? '', $n['target'] ?? 0, $n['showDate'] ?? null, $n['type'] === 'shape' ? $n : null, $n['order'] ?? null],
+function all_folders(): array {
+    return store()->folders();
+}
+
+function notes_version(array $notes, array $folders = []): string {
+    return md5(json_encode([$folders, array_map(
+        fn($n) => [$n['id'], $n['type'], $n['title'] ?? '', $n['body'] ?? '', $n['color'] ?? '', $n['file'] ?? '', $n['w'] ?? 0, $n['h'] ?? 0, $n['x'], $n['y'], $n['rot'] ?? 0, $n['style'] ?? '', $n['tz'] ?? '', $n['label'] ?? '', $n['seconds'] ?? null, $n['text'] ?? '', $n['shape'] ?? '', $n['target'] ?? 0, $n['showDate'] ?? null, $n['type'] === 'shape' ? $n : null, $n['order'] ?? null, $n['folder'] ?? null],
         $notes
-    )));
+    )]));
 }

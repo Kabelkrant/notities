@@ -1,6 +1,6 @@
 import { POLL_MS, els, state } from './state.js';
 import { dialog, statusEl, setStatus } from './ui.js';
-import { applyServerItems } from './render.js';
+import { applyServerItems, notifyChanged } from './render.js';
 
 // Live sync (polling)
 export async function poll() {
@@ -16,6 +16,7 @@ export async function poll() {
       // focus behouden: appendChild verplaatst elementen en kan de focus kwijtraken
       const focused = document.activeElement?.closest?.('.item');
       applyServerItems(data.notes);
+      if (data.folders) { state.folders = data.folders; notifyChanged(); }
       if (focused && els.has(Number(focused.dataset.id)) && document.activeElement !== focused) focused.focus({ preventScroll: true });
     }
     state.missedWhileBusy = false;

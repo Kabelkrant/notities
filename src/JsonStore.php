@@ -71,6 +71,93 @@ final class JsonStore
         }, write: true);
     }
 
+    /* ---------- Mappen van de notitie-app (hoogstens één niveau diep) ----------
+     * 'folders' is een geordende lijst {id, name}; map 0 'Algemeen' bestaat altijd en vangt notities zonder (bestaande) map op.
+     * Mapindeling en volgorde raken 'updated' van een notitie niet aan, zodat de stapelvolgorde op het canvas gelijk blijft. */
+    private function folderList(array $d): array
+    {
+        $f = array_values($d['folders'] ?? []);
+        if (!array_filter($f, fn($x) => $x['id'] === 0)) array_unshift($f, ['id' => 0, 'name' => 'Algemeen']);
+        return $f;
+    }
+
+    /** @return list<array{id:int,name:string}> */
+    public function folders(): array
+    {
+        return $this->read(fn(array $d) => $this->folderList($d), write: false);
+    }
+
+    public function createFolder(string $name): array
+    {
+        return $this->read(function (array &$d) use ($name) {
+            $d['folders'] = $this->folderList($d);
+            $id = $d['next_folder_id'] ?? 1;
+            $d['next_folder_id'] = $id + 1;
+            $d['folders'][] = $folder = ['id' => $id, 'name' => $name];
+            return $folder;
+        }, write: true);
+    }
+
+    public function renameFolder(int $id, string $name): bool
+    {
+        return $this->read(function (array &$d) use ($id, $name) {
+            $d['folders'] = $this->folderList($d);
+            foreach ($d['folders'] as &$f) if ($f['id'] === $id) { $f['name'] = $name; return true; }
+            return false;
+        }, write: true);
+    }
+
+    /** Verwijdert een map; de notities erin verhuizen naar Algemeen. Map 0 kan niet weg. */
+    public function deleteFolder(int $id): bool
+    {
+        if ($id === 0) return false;
+        return $this->read(function (array &$d) use ($id) {
+            $d['folders'] = $this->folderList($d);
+            $before = count($d['folders']);
+            $d['folders'] = array_values(array_filter($d['folders'], fn($f) => $f['id'] !== $id));
+            foreach ($d['notes'] as &$n) if (($n['folder'] ?? 0) === $id) $n['folder'] = 0;
+            return count($d['folders']) < $before;
+        }, write: true);
+    }
+
+    /**
+     * Zet in één keer de volgorde van de mappen en de indeling en volgorde van de notities.
+     * @param list<int> $folderOrder map-id's in de nieuwe volgorde
+     * @param list<array{0:int,1:int}> $layout [notitie-id, map-id] in de nieuwe volgorde (van boven naar beneden)
+     */
+    public function organize(array $folderOrder, array $layout): void
+    {
+        $this->read(function (array &$d) use ($folderOrder, $layout) {
+            $folders = $this->folderList($d);
+            $byId = array_column($folders, null, 'id');
+            $sorted = [];
+            foreach ($folderOrder as $fid) if (isset($byId[$fid])) { $sorted[] = $byId[$fid]; unset($byId[$fid]); }
+            $d['folders'] = array_merge($sorted, array_values($byId)); // onbekende of vergeten mappen blijven achteraan staan
+            $known = array_column($d['folders'], 'id');
+            $pos = [];
+            foreach ($layout as $i => [$nid, $fid]) $pos[$nid] = [$i, in_array($fid, $known, true) ? $fid : 0];
+            foreach ($d['notes'] as &$n) if (isset($pos[$n['id']])) { $n['order'] = $pos[$n['id']][0]; $n['folder'] = $pos[$n['id']][1]; }
+            return null;
+        }, write: true);
+    }
+
+    /** Verplaatst een notitie bovenaan een andere map. */
+    public function setNoteFolder(int $id, int $folder): ?array
+    {
+        return $this->read(function (array &$d) use ($id, $folder) {
+            $known = array_column($this->folderList($d), 'id');
+            if (!in_array($folder, $known, true)) $folder = 0;
+            $min = null;
+            foreach ($d['notes'] as $n) {
+                if (($n['type'] ?? 'note') === 'note' && ($n['folder'] ?? 0) === $folder) $min = min($min ?? PHP_INT_MAX, (int)($n['order'] ?? -$n['id']));
+            }
+            foreach ($d['notes'] as &$n) {
+                if ($n['id'] === $id) { $n['folder'] = $folder; $n['order'] = $min === null ? 0 : $min - 1; return $n; }
+            }
+            return null;
+        }, write: true);
+    }
+
     /** Verwijdert een notitie en geeft die terug (null als hij niet bestond). */
     public function delete(int $id): ?array
     {
