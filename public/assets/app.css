@@ -248,7 +248,7 @@ input[type=color] { padding: 0; height: 2.2rem; width: 100%; }
 .board.panning { cursor: grabbing; }
 .world { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; }
 .note { cursor: auto; }
-/* Oorsprong (0, 0): 🎯 met een vaste schermgrootte (tegenschaal t.o.v. de zoom); het midden van de emoji ligt op het punt */
+/* Oorsprong (0, 0): ➕ met een vaste schermgrootte (tegenschaal t.o.v. de zoom); het midden van de emoji ligt op het punt */
 .origin { position: absolute; left: 0; top: 0; width: 0; height: 0; padding: 0; border: 0; background: none; z-index: 1; cursor: pointer; transform-origin: 0 0; } /* tegenschaal: zet zoom.js per frame */
 .origin-icon { position: absolute; left: -11px; top: -11px; width: 22px; height: 22px; display: grid; place-items: center; font-size: 18px; line-height: 1; }
 .origin-tip { position: absolute; left: 16px; top: -14px; width: max-content; padding: .3rem .55rem; border-radius: 8px; background: var(--surface); color: var(--text); box-shadow: 0 4px 14px rgba(0,0,0,.3); font-size: .8rem; text-align: left; cursor: default; }

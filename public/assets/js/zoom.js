@@ -27,7 +27,7 @@ function apply() {
   // Alleen de transform van de wereld en directe stijlen op losse elementen: een (overgeërfde) CSS-variabele op het bord zou bij elk frame
   // de stijl van alle items opnieuw laten berekenen, en dat kost bij een groot bord tientallen milliseconden per frame.
   world.style.transform = `translate(${state.tx}px, ${state.ty}px) scale(${state.zoom})`;
-  origin.style.transform = `scale(${1 / state.zoom})`; // het 🎯 houdt een vaste schermgrootte
+  origin.style.transform = `scale(${1 / state.zoom})`; // het ➕ houdt een vaste schermgrootte
   board.style.backgroundSize = `${GRID * state.zoom}px ${GRID * state.zoom}px`; // puntenraster van snap to grid
   board.style.backgroundPosition = `${state.tx}px ${state.ty}px`;
   updateButtons();
@@ -285,12 +285,12 @@ addEventListener('keydown', (e) => {
   setZoom(goal * (inn ? 1.5 : 1 / 1.5));
 });
 
-// Oorsprong (0, 0): een 🎯 met een vaste schermgrootte; aanklikken toont een uitleg
+// Oorsprong (0, 0): een ➕ met een vaste schermgrootte; aanklikken toont een uitleg
 const origin = document.createElement('button');
 origin.type = 'button';
 origin.className = 'origin';
 origin.setAttribute('aria-label', 'Middenpunt van het bord (0, 0)');
-origin.innerHTML = '<span class="origin-icon" aria-hidden="true">🎯</span><span class="origin-tip" role="status" hidden>Dit is het middenpunt (0, 0) van het bord</span>';
+origin.innerHTML = '<span class="origin-icon" aria-hidden="true">➕</span><span class="origin-tip" role="status" hidden>Dit is het middenpunt (0, 0) van het bord</span>';
 world.prepend(origin);
 const tip = origin.querySelector('.origin-tip');
 let tipTimer = 0;
