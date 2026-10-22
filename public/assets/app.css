@@ -25,7 +25,7 @@ body { margin: 0; font-family: sans-serif; background: var(--bg); color: var(--t
 .zoom-ctl { display: flex; gap: var(--toolbar-gap); }
 .icon-btn { display: grid; place-items: center; width: 2.4rem; height: 2.4rem; padding: 0; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
 .icon-btn:disabled { opacity: .45; cursor: default; }
-.add-btn { background: var(--add); border-color: var(--add); color: #fff; }
+.add-btn { background: var(--accent); border-color: var(--accent); color: #fff; } /* de Nieuw-knop is blauw (de groene --add blijft voor vinkjes en radioknoppen in het menu) */
 .add-btn:hover { filter: brightness(1.08); }
 .menu { position: absolute; top: calc(100% + 6px); right: 0; min-width: 11rem; display: flex; flex-direction: column; padding: .25rem; border-radius: 10px; background: var(--surface); box-shadow: 0 8px 24px rgba(0,0,0,.3); }
 .menu[hidden] { display: none; }
