@@ -401,3 +401,11 @@ body.mode-notes .board { visibility: hidden; } /* blijft bestaan (maten, plaatsi
 
 /* Notitievenster op het canvas: de visuele editor heeft dezelfde hoogte en kleuren als het tekstvak */
 #noteDialog .na-rich { flex: none; height: 200px; background: var(--bg); color: var(--text); }
+
+/* Zwevend balkje bij een link in de visuele editor: openen, wijzigen of verwijderen */
+.link-pop { position: absolute; z-index: 5; display: flex; align-items: center; gap: .3rem; max-width: calc(100% - .5rem); padding: .3rem; border: 1px solid color-mix(in srgb, var(--text) 25%, transparent); border-radius: 10px; background: var(--surface); box-shadow: 0 8px 24px rgba(0,0,0,.3); font-size: .85rem; }
+.link-pop[hidden] { display: none; }
+.link-pop .link-open { flex: 1; min-width: 0; padding: .3rem .5rem; border-radius: 8px; color: var(--accent); text-decoration: none; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.link-pop .link-open:hover, .link-pop .link-open:focus-visible { background: color-mix(in srgb, var(--accent) 14%, transparent); outline: none; }
+.link-pop button { flex: none; padding: .3rem .55rem; font-size: .8rem; border: none; border-radius: 8px; background: transparent; color: var(--text); }
+.link-pop button:hover, .link-pop button:focus-visible { background: color-mix(in srgb, var(--accent) 14%, transparent); outline: none; }

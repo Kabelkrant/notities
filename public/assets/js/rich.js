@@ -15,6 +15,28 @@ export function createRich(field, { onInput, onBlur }) {
   const emojiPop = field.querySelector('.emoji-pop'), emojiBtn = field.querySelector('[data-fmt="emoji"]');
   let editor = null, linkRange = null;
 
+  /* ---------- Links openen: een zwevend balkje bij een link (ook met touch), en Ctrl+klik ---------- */
+  const pop = document.createElement('div');
+  pop.className = 'link-pop'; pop.hidden = true;
+  pop.innerHTML = '<a class="link-open" target="_blank" rel="noopener noreferrer"></a><button type="button" class="link-edit">Wijzigen</button><button type="button" class="link-unset">Verwijderen</button>';
+  field.appendChild(pop);
+  const popOpen = pop.querySelector('.link-open');
+  pop.addEventListener('mousedown', (e) => e.preventDefault()); // de focus blijft in de editor
+  pop.querySelector('.link-edit').addEventListener('click', () => { pop.hidden = true; openLinkBox(); });
+  pop.querySelector('.link-unset').addEventListener('click', () => { pop.hidden = true; editor.chain().focus().extendMarkRange('link').unsetLink().run(); });
+  function syncPop() { // het balkje staat onder de link waar de cursor in staat
+    if (!editor || !editor.isActive('link') || !editor.state.selection.empty || !linkBox.hidden) { pop.hidden = true; return; }
+    const href = editor.getAttributes('link').href || '';
+    popOpen.href = href;
+    popOpen.textContent = (href.length > 38 ? href.slice(0, 37) + '…' : href).replace(/^https?:\/\//, '') + ' ↗';
+    popOpen.title = 'Openen: ' + href;
+    pop.hidden = false;
+    const at = editor.view.coordsAtPos(editor.state.selection.from), fr = field.getBoundingClientRect();
+    pop.style.top = Math.round(at.bottom - fr.top + 6) + 'px';
+    pop.style.left = Math.max(0, Math.min(Math.round(at.left - fr.left), field.clientWidth - pop.offsetWidth)) + 'px';
+  }
+  mount.addEventListener('mouseover', (e) => { const a = e.target.closest?.('a'); if (a && !a.title) a.title = a.getAttribute('href') + ' (Ctrl+klik om te openen)'; });
+
   const extensions = () => [
     Document, Paragraph, Text, Bold, Italic, Underline, HardBreak, HorizontalRule, BulletList, OrderedList, ListItem, ListKeymap,
     Link.configure({ openOnClick: false, autolink: true, linkOnPaste: true, protocols: ['http', 'https', 'mailto'], defaultProtocol: 'https', HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer nofollow' } }),
@@ -33,6 +55,7 @@ export function createRich(field, { onInput, onBlur }) {
       const name = ACTIVE[b.dataset.fmt];
       if (name) b.setAttribute('aria-pressed', String(!!editor?.isActive(name)));
     }
+    syncPop();
   }
   bar.addEventListener('mousedown', (e) => { if (e.target.closest('button')) e.preventDefault(); }); // de focus blijft in de editor
   bar.addEventListener('click', (e) => {
@@ -115,7 +138,7 @@ export function createRich(field, { onInput, onBlur }) {
 
   /* ---------- Editor ---------- */
   function destroy() {
-    closeLinkBox(); closeEmoji();
+    closeLinkBox(); closeEmoji(); pop.hidden = true;
     editor?.destroy();
     editor = null;
   }
@@ -126,9 +149,17 @@ export function createRich(field, { onInput, onBlur }) {
     const { doc } = parseMarkdown(md);
     editor = new Editor({
       element: mount, extensions: extensions(), content: doc,
-      editorProps: { attributes: { class: 'na-pm', role: 'textbox', 'aria-multiline': 'true', 'aria-label': 'Inhoud van de notitie' } },
+      editorProps: {
+        attributes: { class: 'na-pm', role: 'textbox', 'aria-multiline': 'true', 'aria-label': 'Inhoud van de notitie' },
+        handleClick: (view, pos, event) => { // Ctrl+klik (Cmd op een Mac) op een link opent hem in een nieuw tabblad
+          const a = (event.ctrlKey || event.metaKey) && event.target.closest?.('a');
+          if (!a) return false;
+          window.open(a.href, '_blank', 'noopener,noreferrer');
+          return true;
+        },
+      },
       onUpdate: () => onInput?.(),
-      onBlur: () => onBlur?.(),
+      onBlur: ({ event }) => { if (!pop.contains(event?.relatedTarget)) pop.hidden = true; onBlur?.(); },
       onSelectionUpdate: syncBar, onTransaction: syncBar,
     });
     if (selection) {
