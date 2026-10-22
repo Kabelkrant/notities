@@ -101,18 +101,22 @@ board.addEventListener('wheel', (e) => {
   setZoom(goal * Math.exp(-d * (e.ctrlKey ? PINCH_K : WHEEL_K)), e.clientX, e.clientY);
 }, { passive: false });
 
-// Pannen: slepen op leeg bord (of met de middelste muisknop overal); Shift+slepen is het selectiekader
+// Pannen: slepen op leeg bord (of met de middelste muisknop overal). Het handje verschijnt pas zodra er echt gesleept wordt.
 let pan = null;
 board.addEventListener('pointerdown', (e) => {
   const middle = e.button === 1;
-  if (!middle && (e.target !== board || e.button !== 0 || e.shiftKey)) return;
-  pan = { id: e.pointerId, x: e.clientX, y: e.clientY };
+  if (!middle && (e.target !== board || e.button !== 0)) return;
+  pan = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false };
   board.setPointerCapture(e.pointerId);
-  board.classList.add('panning');
   e.preventDefault();
 });
 board.addEventListener('pointermove', (e) => {
   if (!pan || e.pointerId !== pan.id) return;
+  if (!pan.moved) {
+    if (Math.hypot(e.clientX - pan.sx, e.clientY - pan.sy) < 4) return;
+    pan.moved = true;
+    board.classList.add('panning');
+  }
   panBy(e.clientX - pan.x, e.clientY - pan.y);
   pan.x = e.clientX; pan.y = e.clientY;
 });

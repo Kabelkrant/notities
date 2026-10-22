@@ -244,12 +244,11 @@ input[type=color] { padding: 0; height: 2.2rem; width: 100%; }
 .countdown-styles .countdown-art { width: 100%; max-width: 3.6rem; height: auto; aspect-ratio: 1; box-shadow: none; }
 .countdown-styles button[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 1px; }
 
-/* Meervoudige selectie: halftransparant selectiekader (zoals het Windows-bureaublad) en markering van geselecteerde items */
-.marquee { position: absolute; z-index: 100000; pointer-events: none; border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 22%, transparent); }
+/* Meervoudige selectie: markering van geselecteerde items */
 .item.selected { outline: 2px solid var(--accent); outline-offset: 3px; box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 22%, transparent); }
 
 /* Camera: de wereldlaag wordt geschaald en verschoven; het bord zelf scrolt niet */
-.board { overflow: hidden; overflow: clip; cursor: grab; touch-action: none; }
+.board { overflow: hidden; overflow: clip; touch-action: none; }
 .board.panning { cursor: grabbing; }
 .world { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; }
 .note { cursor: auto; }
