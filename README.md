@@ -97,6 +97,8 @@ Menu ☰ → Over toont de huidige versie (commit) en de nieuwste op GitHub (`Ka
 | Ctrl+B, Ctrl+I, Ctrl+U | notitie-editor | dik, cursief, onderstrepen |
 | Ctrl+K | notitie-editor | link toevoegen of bewerken |
 | Ctrl+V | bord | afbeelding van het klembord uploaden |
+| + (of =), − | bord | zoom ×1,5 of ÷1,5, om het midden van het bord |
+| Pijltjes (Shift = grotere stap) | geen item gefocust of geselecteerd | het bord verschuiven (80 px; Shift: 320 px) |
 | Pijltjes (Shift = grotere stap) | geselecteerd item | verplaatsen; met snap to grid in stappen van 20 px (Shift: 100 px) |
 | Enter | geselecteerd item | bewerken (notitie, pijl, klok, WordArt) |
 | Delete | geselecteerd item | verwijderen (6 seconden ongedaan te maken) |

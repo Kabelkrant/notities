@@ -13,6 +13,11 @@ export function clearSelection() {
   mark();
 }
 
+export function deselect(ids) {
+  for (const id of ids) selected.delete(id);
+  mark();
+}
+
 export function toggleSelected(id) {
   if (!selected.delete(id)) selected.add(id);
   mark();

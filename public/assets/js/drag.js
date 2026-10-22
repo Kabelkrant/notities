@@ -1,11 +1,11 @@
 import { items, els, state, selected } from './state.js';
 import { toggleSelected, clearSelection } from './selection.js';
-import { board, reportError } from './ui.js';
+import { board, world, reportError } from './ui.js';
 import { api } from './api.js';
 import { poll } from './sync.js';
 import { snapTo, showGrid } from './snap.js';
 import { paint } from './render.js';
-import { refreshBars } from './zoom.js';
+import { refreshBars, pinch } from './zoom.js';
 import { TYPES } from './types.js';
 
 // Slepen, schalen en roteren (Pointer Events)
@@ -14,7 +14,7 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 board.addEventListener('pointerdown', (e) => {
   const item = e.target.closest('.item');
-  if (!item || e.button > 0) return;
+  if (!item || e.button > 0 || pinch.active) return;
   const n = items.get(Number(item.dataset.id));
 
   if ((e.ctrlKey || e.metaKey) && !e.target.closest('button, a')) { // Ctrl+klik: item aan/uit de selectie
@@ -102,7 +102,7 @@ board.addEventListener('pointermove', (e) => {
     item.style.height = n.h + 'px';
     return;
   }
-  if (!drag || e.pointerId !== drag.id) return;
+  if (!drag || e.pointerId !== drag.id || pinch.active) return; // tijdens een pinch blijft het item staan
   const dx = (e.clientX - drag.sx) / state.zoom, dy = (e.clientY - drag.sy) / state.zoom; // schermpixels -> bordcoördinaten
   if (!drag.moved && Math.hypot(dx, dy) * state.zoom < 4) return;
   if (!drag.moved) {

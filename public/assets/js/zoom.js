@@ -1,4 +1,4 @@
-import { ZOOM_STEPS, ZOOM_MIN, ZOOM_MAX, items, els, state } from './state.js';
+import { ZOOM_STEPS, ZOOM_MIN, ZOOM_MAX, items, els, selected, state } from './state.js';
 import { $, board, world } from './ui.js';
 
 // Camera: de wereld (alle items) staat in één laag die met een transform wordt geschaald en verschoven.
@@ -96,22 +96,61 @@ export function reveal(el, margin = 24) {
 // Wiel/touchpad: zoomen op de cursor. Pinch op een touchpad komt binnen als wiel met Ctrl.
 board.addEventListener('wheel', (e) => {
   e.preventDefault();
+  if (state.busy) return; // niet zoomen tijdens slepen, schalen of roteren van een item: de muis zou van het item losraken
   const px = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
   const d = clamp(e.deltaY * px, -160, 160);
-  setZoom(goal * Math.exp(-d * (e.ctrlKey ? PINCH_K : WHEEL_K)), e.clientX, e.clientY);
+  const isPinch = e.ctrlKey && Math.abs(e.deltaY) < 20; // een echte pinch geeft kleine delta's; Ctrl + muiswiel gewoon wielsnelheid
+  setZoom(goal * Math.exp(-d * (isPinch ? PINCH_K : WHEEL_K)), e.clientX, e.clientY);
 }, { passive: false });
+
+// Pinch op een touchscreen: twee vingers (ook boven items) zoomen rechtstreeks mee met de afstand, en pannen met het midden ertussen.
+// Zodra de tweede vinger neerkomt zijn slepen en pannen met één vinger uit; drag.js kijkt naar pinch.active.
+export const pinch = { active: false };
+const touches = new Map(); // pointerId -> {x, y}
+let pz = null;             // {z0, d0, wx, wy}: zoom, afstand en wereldpunt bij het begin
+const pair = () => { const [a, b] = [...touches.values()]; return { cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) || 1 }; };
+board.addEventListener('pointerdown', (e) => {
+  if (e.pointerType !== 'touch') return;
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (touches.size !== 2) return;
+  const { cx, cy, d } = pair(), w = screenToWorld(cx, cy);
+  anchor = slide = null; vel = 0; pan = null;
+  board.classList.remove('panning');
+  pinch.active = true; state.busy = true;
+  pz = { z0: state.zoom, d0: d, wx: w.x, wy: w.y };
+}, true);
+board.addEventListener('pointermove', (e) => {
+  const t = touches.get(e.pointerId);
+  if (!t) return;
+  t.x = e.clientX; t.y = e.clientY;
+  if (!pinch.active || touches.size !== 2) return;
+  const { cx, cy, d } = pair(), r = rect();
+  state.zoom = goal = clamp(pz.z0 * d / pz.d0, ZOOM_MIN, ZOOM_MAX);
+  state.tx = cx - r.left - pz.wx * state.zoom;
+  state.ty = cy - r.top - pz.wy * state.zoom;
+  apply();
+}, true);
+function endTouch(e) {
+  if (!touches.delete(e.pointerId) || !pinch.active || touches.size >= 2) return;
+  pinch.active = false; state.busy = false; pz = null;
+  state.tx = Math.round(state.tx); state.ty = Math.round(state.ty);
+  apply();
+}
+board.addEventListener('pointerup', endTouch, true);
+board.addEventListener('pointercancel', endTouch, true);
 
 // Pannen: slepen op leeg bord (of met de middelste muisknop overal). Het handje verschijnt pas zodra er echt gesleept wordt.
 let pan = null;
 board.addEventListener('pointerdown', (e) => {
   const middle = e.button === 1;
-  if (!middle && (e.target !== board || e.button !== 0)) return;
+  if (pinch.active || (!middle && (e.target !== board || e.button !== 0))) return;
   pan = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false };
   board.setPointerCapture(e.pointerId);
+  document.activeElement?.blur?.(); // preventDefault houdt de browser anders van het wegklikken van de focus af
   e.preventDefault();
 });
 board.addEventListener('pointermove', (e) => {
-  if (!pan || e.pointerId !== pan.id) return;
+  if (!pan || e.pointerId !== pan.id || pinch.active) return;
   if (!pan.moved) {
     if (Math.hypot(e.clientX - pan.sx, e.clientY - pan.sy) < 4) return;
     pan.moved = true;
@@ -129,6 +168,22 @@ function endPan(e) {
 }
 board.addEventListener('pointerup', endPan);
 board.addEventListener('pointercancel', endPan);
+
+// Pijltjestoetsen: het bord verschuiven (Shift = grotere stap). Alleen als er geen item gefocust of geselecteerd is
+// (die verplaatsen met de pijltjes, zie actions.js) en je niet in een invoerveld, knop of dialoog zit.
+const KEY_STEP = 80, KEY_STEP_BIG = 320;
+addEventListener('keydown', (e) => {
+  if (!e.key.startsWith('Arrow') || e.ctrlKey || e.metaKey || e.altKey || selected.size) return;
+  if (e.target.closest?.('.item, input, textarea, select, button, [contenteditable]') || document.querySelector('dialog[open]')) return;
+  e.preventDefault();
+  const step = e.shiftKey ? KEY_STEP_BIG : KEY_STEP;
+  // de inhoud schuift tegen de pijl in: pijl rechts brengt het zicht naar rechts
+  const dx = e.key === 'ArrowRight' ? -step : e.key === 'ArrowLeft' ? step : 0, dy = e.key === 'ArrowDown' ? -step : e.key === 'ArrowUp' ? step : 0;
+  if (pinch.active) return;
+  if (anchor) { anchor.sx += dx; anchor.sy += dy; return run(); } // een lopende zoom schuift gewoon mee
+  slide = { tx: (slide?.tx ?? state.tx) + dx, ty: (slide?.ty ?? state.ty) + dy };
+  run();
+});
 
 // Een item dat via Tab focus krijgt maar buiten beeld staat, schuift in beeld
 board.addEventListener('focusin', (e) => { const it = e.target.closest?.('.item'); if (it && e.target.matches(':focus-visible')) reveal(it); });
@@ -152,8 +207,18 @@ function updateButtons() {
   zoomOut.title = `Uitzoomen (nu ${pct})`;
   zoomIn.title = `Inzoomen (nu ${pct})`;
 }
-zoomOut.addEventListener('click', () => setZoom([...ZOOM_STEPS].reverse().find((z) => z < goal * 0.999) ?? ZOOM_MIN));
-zoomIn.addEventListener('click', () => setZoom(ZOOM_STEPS.find((z) => z > goal * 1.001) ?? ZOOM_MAX));
+const stepOut = () => setZoom([...ZOOM_STEPS].reverse().find((z) => z < goal * 0.999) ?? ZOOM_MIN);
+const stepIn = () => setZoom(ZOOM_STEPS.find((z) => z > goal * 1.001) ?? ZOOM_MAX);
+zoomOut.addEventListener('click', stepOut);
+zoomIn.addEventListener('click', stepIn);
+// Toetsen + en - (ook = en de numerieke toetsen): zoom ×1,5 of ÷1,5, om het midden van het bord
+addEventListener('keydown', (e) => {
+  const inn = e.key === '+' || e.key === '=', out = e.key === '-' || e.key === '_';
+  if (!(inn || out) || e.ctrlKey || e.metaKey || e.altKey || pinch.active) return; // Ctrl en + / - blijft de zoom van de browser
+  if (e.target.closest?.('input, textarea, select, button, [contenteditable]') || document.querySelector('dialog[open]')) return;
+  e.preventDefault();
+  setZoom(goal * (inn ? 1.5 : 1 / 1.5));
+});
 
 // Oorsprong (0, 0): een 🎯 met een vaste schermgrootte; aanklikken toont een uitleg
 const origin = document.createElement('button');
