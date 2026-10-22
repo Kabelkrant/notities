@@ -142,7 +142,7 @@ function endTouch(e) {
 board.addEventListener('pointerup', endTouch, true);
 board.addEventListener('pointercancel', endTouch, true);
 
-// Pannen: slepen op leeg bord (of met de middelste muisknop overal). Het handje verschijnt pas zodra er echt gesleept wordt.
+// Pannen: slepen op leeg bord. Het handje verschijnt pas zodra er echt gesleept wordt. (De middelste muisknop doet iets anders: zie verderop.)
 // Een item moet eerst gekozen zijn (aangeklikt of aangetikt, of geselecteerd met Ctrl) voordat je het kunt verslepen, zie drag.js:
 // slepen vanaf een niet-gekozen item pant het bord, en een klik of tik zonder slepen kiest het item. Zo schuif je niet per ongeluk
 // een item weg terwijl je het bord wilde verschuiven of scrollen.
@@ -150,12 +150,12 @@ let pan = null;
 // gekozen = gefocust, of onderdeel van de selectie
 export const isChosen = (item) => item.matches(':focus-within') || selected.has(Number(item.dataset.id));
 board.addEventListener('pointerdown', (e) => {
-  const middle = e.button === 1, item = e.target.closest?.('.item');
+  const item = e.target.closest?.('.item');
   const touch = e.pointerType === 'touch';
   const select = e.ctrlKey || e.metaKey; // Ctrl+klik op een item zet het in de selectie (drag.js), dat is geen pan of tik
   const touchPan = !select && item && !e.target.closest('button, a, .rotate-handle, .resize-handle')
     && (!isChosen(item) || (touch && item.classList.contains('note') && !e.target.closest('.note-head'))); // op touch pant ook de tekst van een gekozen notitie
-  if (pinch.active || (!middle && !(e.button === 0 && (e.target === board || touchPan)))) return;
+  if (pinch.active || !(e.button === 0 && (e.target === board || touchPan))) return;
   pan = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false, tap: touchPan ? item : null };
   board.setPointerCapture(e.pointerId);
   if (!touchPan) document.activeElement?.blur?.(); // preventDefault houdt de browser anders van het wegklikken van de focus af
@@ -181,6 +181,45 @@ function endPan(e) {
 }
 board.addEventListener('pointerup', endPan);
 board.addEventListener('pointercancel', endPan);
+
+// Middelste muisknop ingedrukt houden: het zicht blijft bewegen in de richting van de muis ten opzichte van het punt waar je indrukte,
+// des te sneller naarmate je verder weg gaat (zoals de automatische scroll van een browser). Loslaten stopt het.
+const AUTO_DEAD = 10, AUTO_GAIN = 5, AUTO_MAX = 3000; // dode zone (px), px/s per px afstand, maximale snelheid (px/s)
+let auto = null, autoRaf = 0;
+function autoFrame(t) {
+  autoRaf = 0;
+  if (!auto) return;
+  const dt = Math.min(0.05, (t - auto.t) / 1000 || 0.016); auto.t = t;
+  const speed = (d) => Math.sign(d) * Math.min(AUTO_MAX, Math.max(0, Math.abs(d) - AUTO_DEAD) * AUTO_GAIN);
+  const vx = speed(auto.x - auto.sx), vy = speed(auto.y - auto.sy);
+  if (vx || vy) panBy(-vx * dt, -vy * dt); // het zicht gaat mee met de muis, de inhoud de andere kant op
+  autoRaf = requestAnimationFrame(autoFrame);
+}
+function endAuto(e) {
+  if (!auto || (e && e.pointerId !== auto.id)) return;
+  auto.ring.remove(); auto = null;
+  board.classList.remove('autoscrolling');
+  state.tx = Math.round(state.tx); state.ty = Math.round(state.ty);
+  apply();
+}
+board.addEventListener('pointerdown', (e) => {
+  if (e.button !== 1 || auto || pinch.active) return;
+  const r = rect(), ring = document.createElement('div');
+  ring.className = 'autoscroll-ring'; ring.style.left = e.clientX - r.left + 'px'; ring.style.top = e.clientY - r.top + 'px';
+  board.appendChild(ring);
+  auto = { id: e.pointerId, sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY, t: performance.now(), ring };
+  board.classList.add('autoscrolling');
+  board.setPointerCapture(e.pointerId);
+  anchor = slide = null; vel = 0; goal = state.zoom;
+  document.activeElement?.blur?.();
+  e.preventDefault();
+  autoRaf = requestAnimationFrame(autoFrame);
+});
+board.addEventListener('pointermove', (e) => { if (auto && e.pointerId === auto.id) { auto.x = e.clientX; auto.y = e.clientY; } });
+board.addEventListener('pointerup', (e) => { if (e.button === 1) endAuto(e); });
+board.addEventListener('pointercancel', endAuto);
+board.addEventListener('lostpointercapture', endAuto);
+addEventListener('blur', () => endAuto());
 
 // Pijltjestoetsen: het bord verschuiven (Shift = grotere stap). Alleen als er geen item gefocust of geselecteerd is
 // (die verplaatsen met de pijltjes, zie actions.js) en je niet in een invoerveld, knop of dialoog zit.

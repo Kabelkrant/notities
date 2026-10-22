@@ -288,3 +288,7 @@ input[type=color] { padding: 0; height: 2.2rem; width: 100%; }
 .shape-presets .shape-custom { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .1rem; font-size: .72rem; line-height: 1.1; padding: .2rem; }
 .shape-presets .shape-custom span:first-child { font-size: 1.1rem; }
 #shapeDialog menu { position: sticky; bottom: -1.25rem; margin: 0; padding: .6rem 0 0; background: var(--surface); } /* knoppen blijven in beeld op lage schermen */
+/* Middelste muisknop ingedrukt: markering van het startpunt van de automatische scroll */
+.board.autoscrolling, .board.autoscrolling * { cursor: all-scroll !important; }
+.autoscroll-ring { position: absolute; z-index: 100002; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; pointer-events: none; border: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--bg) 70%, transparent); }
+.autoscroll-ring::after { content: ''; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--accent); }
