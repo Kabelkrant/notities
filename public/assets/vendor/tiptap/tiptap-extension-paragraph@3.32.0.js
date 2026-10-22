@@ -1,0 +1,7 @@
+/**
+ * Bundled by jsDelivr using Rollup v4.62.2 and esbuild v0.28.1.
+ * Original file: /npm/@tiptap/extension-paragraph@3.32.0/dist/index.js
+ *
+ * Do NOT use SRI with dynamically generated files! More information: https://www.jsdelivr.com/using-sri-with-dynamic-files
+ */
+import{Node as u,mergeAttributes as l}from"./tiptap-core@3.32.0.js";const a="&nbsp;",d="\xA0",s=u.create({name:"paragraph",priority:1e3,addOptions(){return{HTMLAttributes:{}}},group:"block",content:"inline*",parseHTML(){return[{tag:"p"}]},renderHTML({HTMLAttributes:t}){return["p",l(this.options.HTMLAttributes,t),0]},parseMarkdown:(t,n)=>{const r=t.tokens||[];if(r.length===1&&r[0].type==="image")return n.parseChildren([r[0]]);const e=n.parseInline(r);return r.length===1&&r[0].type==="text"&&(r[0].raw===a||r[0].text===a||r[0].raw===d||r[0].text===d)&&e.length===1&&e[0].type==="text"&&(e[0].text===a||e[0].text===d)?n.createNode("paragraph",void 0,[]):n.createNode("paragraph",void 0,e)},renderMarkdown:(t,n,r)=>{if(!t)return"";const e=Array.isArray(t.content)?t.content:[];if(e.length===0){var o,i;const p=Array.isArray(r==null||(o=r.previousNode)===null||o===void 0?void 0:o.content)?r.previousNode.content:[];return(r==null||(i=r.previousNode)===null||i===void 0?void 0:i.type)==="paragraph"&&p.length===0?a:""}return n.renderChildren(e)},addCommands(){return{setParagraph:()=>({commands:t})=>t.setNode(this.name)}},addKeyboardShortcuts(){return{"Mod-Alt-0":()=>this.editor.commands.setParagraph()}}});var g=s;export{s as Paragraph,g as default};

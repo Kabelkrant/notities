@@ -43,8 +43,8 @@ $boot = [
 $v = fn(string $f): int => (int)@filemtime(__DIR__ . '/' . $f);
 // Import map: geeft elke JS-module een ?v=<wijzigingstijd>, zodat browsers na een update geen verouderde modules gebruiken.
 $imports = [];
-foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
-    $rel = 'assets/js/' . basename($f);
+foreach (array_merge(glob(__DIR__ . '/assets/js/*.js') ?: [], glob(__DIR__ . '/assets/vendor/*/*.js') ?: []) as $f) { // eigen modules en de meegeleverde bibliotheek (Tiptap)
+    $rel = substr($f, strlen(__DIR__) + 1);
     $imports['./' . $rel] = './' . $rel . '?v=' . $v($rel);
 }
 ?>
@@ -171,7 +171,7 @@ foreach (glob(__DIR__ . '/assets/js/*.js') ?: [] as $f) {
             <button type="button" class="primary link-apply">Toepassen</button>
           </div>
         </div>
-        <textarea id="bodyField" name="body" maxlength="20000" required aria-label="Notitie"></textarea>
+        <textarea id="bodyField" name="body" maxlength="20000" aria-label="Notitie"></textarea>
       </div>
       <p class="error" id="formError" hidden></p>
       <menu>

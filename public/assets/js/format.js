@@ -1,5 +1,27 @@
 import { form, dialog } from './ui.js';
 
+// Alleen http(s) en mailto; ontbrekend https:// wordt aangevuld, haakjes en spaties worden veilig gemaakt
+export function normalizeUrl(u) {
+  u = u.replace(/\s+/g, '%20');
+  if (!/^(https?:\/\/|mailto:)/i.test(u)) {
+    if (u.includes('://')) return null;
+    u = /^[^\s@\/%]+@[^\s@\/%]+\.[^\s@\/%]+$/.test(u) ? 'mailto:' + u : 'https://' + u;
+  }
+  return u.replace(/\(/g, '%28').replace(/\)/g, '%29');
+}
+
+export const looksLikeUrl = (t) => /^(https?:\/\/|www\.)\S+$/i.test(t);
+
+/* ---------- Emoji-kiezer: raster van 6 kolommen x 5 rijen met veelgebruikte emoji ---------- */
+export const EMOJI = [
+  ['👍', 'duim omhoog'], ['👎', 'duim omlaag'], ['✅', 'klaar'], ['❌', 'fout'], ['⚠️', 'waarschuwing'], ['🔥', 'vuur'],
+  ['💡', 'idee'], ['📌', 'pin'], ['📅', 'kalender'], ['⏰', 'wekker'], ['⏳', 'zandloper'], ['🎯', 'doel'],
+  ['🚀', 'raket'], ['🐛', 'bug'], ['🌐', 'wereldbol'], ['🔒', 'slot'], ['🍀', 'klavertje'], ['🎉', 'feest'],
+  ['⭐', 'ster'], ['📞', 'telefoon'], ['🏠', 'huis'], ['💰', 'geld'], ['🙏', 'dank'], ['👀', 'ogen'],
+  ['❤️', 'hart'], ['😀', 'lachend gezicht'], ['😂', 'lachen om te huilen'], ['🤔', 'nadenkend gezicht'], ['🤢', 'misselijk gezicht'], ['🤯', 'hoofd explodeert'],
+];
+export const EMOJI_COLS = 6;
+
 // Opmaak-toolbar (Markdown in de textarea). `root` bevat de .fmt-bar, het .emoji-pop-paneel en de .link-box naast de textarea
 // (`bodyField`); `dialogEl` is de dialoog waarin dit staat (sluit hij, dan sluiten ook de paneeltjes). Wordt gebruikt voor het
 // notitievenster op het canvas en voor de editor van de notitie-app.
@@ -67,17 +89,6 @@ export function setupEditor(root, bodyField, dialogEl) {
     return null;
   }
 
-  // Alleen http(s) en mailto; ontbrekend https:// wordt aangevuld, haakjes en spaties worden veilig gemaakt
-  function normalizeUrl(u) {
-    u = u.replace(/\s+/g, '%20');
-    if (!/^(https?:\/\/|mailto:)/i.test(u)) {
-      if (u.includes('://')) return null;
-      u = /^[^\s@\/%]+@[^\s@\/%]+\.[^\s@\/%]+$/.test(u) ? 'mailto:' + u : 'https://' + u;
-    }
-    return u.replace(/\(/g, '%28').replace(/\)/g, '%29');
-  }
-
-  const looksLikeUrl = (t) => /^(https?:\/\/|www\.)\S+$/i.test(t);
   function showLinkError(msg) { linkError.textContent = msg; linkError.hidden = !msg; }
   function closeLinkBox() { linkBox.hidden = true; linkTarget = null; showLinkError(''); }
 
@@ -134,15 +145,6 @@ export function setupEditor(root, bodyField, dialogEl) {
     replaceRange(s, e2, md, s + md.length, s + md.length);
   });
 
-  /* ---------- Emoji-kiezer: raster van 6 kolommen x 5 rijen met veelgebruikte emoji ---------- */
-  const EMOJI = [
-    ['👍', 'duim omhoog'], ['👎', 'duim omlaag'], ['✅', 'klaar'], ['❌', 'fout'], ['⚠️', 'waarschuwing'], ['🔥', 'vuur'],
-    ['💡', 'idee'], ['📌', 'pin'], ['📅', 'kalender'], ['⏰', 'wekker'], ['⏳', 'zandloper'], ['🎯', 'doel'],
-    ['🚀', 'raket'], ['🐛', 'bug'], ['🌐', 'wereldbol'], ['🔒', 'slot'], ['🍀', 'klavertje'], ['🎉', 'feest'],
-    ['⭐', 'ster'], ['📞', 'telefoon'], ['🏠', 'huis'], ['💰', 'geld'], ['🙏', 'dank'], ['👀', 'ogen'],
-    ['❤️', 'hart'], ['😀', 'lachend gezicht'], ['😂', 'lachen om te huilen'], ['🤔', 'nadenkend gezicht'], ['🤢', 'misselijk gezicht'], ['🤯', 'hoofd explodeert'],
-  ];
-  const EMOJI_COLS = 6;
   const emojiPop = root.querySelector('.emoji-pop'), emojiBtn = root.querySelector('[data-fmt="emoji"]');
   let emojiRange = null;
   for (const [ch, name] of EMOJI) {

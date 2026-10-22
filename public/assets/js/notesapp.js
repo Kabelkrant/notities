@@ -7,6 +7,7 @@ import { freeSpot } from './dialog.js';
 import { softDelete } from './actions.js';
 import { needsLightText } from './color.js';
 import { setupEditor } from './format.js';
+import { createBodyEditor } from './bodyeditor.js';
 
 // Notitie-app: links een boomstructuur van mappen met notities (1/3), rechts de editor (2/3), zoals een e-mailprogramma.
 // Mappen staan op het bovenste niveau, notities altijd daaronder (geen geneste mappen). Notities zonder map staan in '(niet ingedeeld)' (map 0).
@@ -15,17 +16,18 @@ const app = $('notesApp'), list = $('naList'), editorBox = $('naEditor'), empty 
 const titleInput = $('naTitle'), swatchBox = $('naSwatches'), savedEl = $('naSaved'), conflictBox = $('naConflict');
 const SAVE_DELAY = 700, GENERAL = 0;
 
-// De Markdown-editor is dezelfde als in het notitievenster op het canvas: de opmaakbalk wordt gekopieerd en opnieuw aangesloten
-const srcField = $('bodyField').closest('.field');
-const field = srcField.cloneNode(true);
-field.querySelector('.field-label')?.remove();
-field.querySelector('.emoji-pop').innerHTML = '';
-field.querySelector('.fmt-bar').removeAttribute('aria-controls');
-const body = field.querySelector('textarea');
+// Twee editors in dezelfde kolom: de visuele editor (Tiptap) voor notities met de opmaak die hij kent, en de Markdown-editor van het notitievenster
+// op het canvas voor notities met iets anders (koppen, code, tabellen, ...). De opmaakbalk wordt in beide gekopieerd van dat notitievenster.
+const plainField = $('bodyField').closest('.field').cloneNode(true);
+plainField.querySelector('.field-label')?.remove();
+plainField.querySelector('.emoji-pop').innerHTML = '';
+const body = plainField.querySelector('textarea');
 for (const a of ['id', 'name', 'required']) body.removeAttribute(a);
-body.setAttribute('aria-label', 'Inhoud van de notitie');
-$('naBodyField').appendChild(field);
-setupEditor(field, body, null);
+plainField.querySelector('.fmt-bar').removeAttribute('aria-controls');
+body.setAttribute('aria-label', 'Inhoud van de notitie (Markdown)');
+$('naBodyField').appendChild(plainField);
+setupEditor(plainField, body, null);
+const editor = createBodyEditor({ plainField, textarea: body, onInput: () => touch(), onBlur: () => { if (dirty) save(); } });
 
 let activeId = null, dirty = false, saving = false, saveTimer = 0, base = null, color = COLORS[0], conflict = false;
 
@@ -181,15 +183,15 @@ function renderListNow() {
 }
 
 /* ---------- Editor ---------- */
-const snapshot = () => ({ title: titleInput.value, body: body.value, color });
+const snapshot = () => ({ title: titleInput.value, body: editor.getValue(), color });
 function setSaved(text) { savedEl.textContent = text; }
 
 // De kleur van de notitie voor het tekstvak (de menging met wit of zwart, en de tekstkleur, regelt de CSS per thema)
 function tint() { editorBox.style.setProperty('--na-color', color); }
 
-function fill(n) {
+function fill(n, selection) {
   titleInput.value = n.title;
-  body.value = n.body;
+  editor.load(n.body, selection);
   color = n.color;
   base = { title: n.title, body: n.body, color: n.color };
   for (const b of swatchBox.children) b.setAttribute('aria-pressed', String(b.title.toLowerCase() === color.toLowerCase()));
@@ -356,10 +358,8 @@ window.addEventListener('notes:changed', () => {
     const n = items.get(activeId);
     if (!n || gone(activeId)) { const first = list.querySelector('.na-item'); first ? select(Number(first.dataset.id)) : showNone(); return; }
     if (!dirty && !saving && base && (n.title !== base.title || n.body !== base.body || n.color !== base.color)) { // door iemand anders gewijzigd
-      const s = body.selectionStart, e = body.selectionEnd;
-      fill(n);
+      fill(n, editor.selection());
       setSaved(lastUpdated(n));
-      body.setSelectionRange(Math.min(s, body.value.length), Math.min(e, body.value.length));
     }
   });
 });

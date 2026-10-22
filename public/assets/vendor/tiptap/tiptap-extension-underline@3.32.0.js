@@ -1,0 +1,7 @@
+/**
+ * Bundled by jsDelivr using Rollup v4.62.2 and esbuild v0.28.1.
+ * Original file: /npm/@tiptap/extension-underline@3.32.0/dist/index.js
+ *
+ * Do NOT use SRI with dynamically generated files! More information: https://www.jsdelivr.com/using-sri-with-dynamic-files
+ */
+import{Mark as a,mergeAttributes as d}from"./tiptap-core@3.32.0.js";const i=a.create({name:"underline",addOptions(){return{HTMLAttributes:{}}},parseHTML(){return[{tag:"u"},{style:"text-decoration",consuming:!1,getAttrs:e=>e.includes("underline")?{}:!1}]},renderHTML({HTMLAttributes:e}){return["u",d(this.options.HTMLAttributes,e),0]},parseMarkdown(e,n){return n.applyMark(this.name||"underline",n.parseInline(e.tokens||[]))},renderMarkdown(e,n){return`++${n.renderChildren(e)}++`},markdownTokenizer:{name:"underline",level:"inline",start(e){return e.indexOf("++")},tokenize(e,n,s){const r=/^(\+\+)([\s\S]+?)(\+\+)/.exec(e);if(!r)return;const t=r[2].trim();return{type:"underline",raw:r[0],text:t,tokens:s.inlineTokens(t)}}},addCommands(){return{setUnderline:()=>({commands:e})=>e.setMark(this.name),toggleUnderline:()=>({commands:e})=>e.toggleMark(this.name),unsetUnderline:()=>({commands:e})=>e.unsetMark(this.name)}},addKeyboardShortcuts(){return{"Mod-u":()=>this.editor.commands.toggleUnderline(),"Mod-U":()=>this.editor.commands.toggleUnderline()}}});var o=i;export{i as Underline,o as default};

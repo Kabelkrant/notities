@@ -6,6 +6,11 @@ import { poll } from './sync.js';
 import { reveal, visibleWorld } from './zoom.js';
 import { defineType } from './types.js';
 import './format.js';
+import { createBodyEditor } from './bodyeditor.js';
+
+// De tekst van de notitie: visuele editor (Tiptap), of de Markdown-editor voor notities met opmaak die de visuele editor niet kent
+const bodyEditor = createBodyEditor({ plainField: form.body.closest('.field'), textarea: form.body });
+dialog.addEventListener('close', () => bodyEditor.destroy());
 
 const swatches = $('swatches');
 for (const c of COLORS) {
@@ -30,7 +35,7 @@ export function openDialog(n) {
   $('dialogTitle').textContent = n ? 'Notitie bewerken' : 'Nieuwe notitie';
   form.id.value = n ? n.id : '';
   form.title.value = n ? n.title : '';
-  form.body.value = n ? n.body : '';
+  bodyEditor.load(n ? n.body : '');
   editBase = n ? { title: n.title, body: n.body, color: n.color } : null;
   forceSave = false;
   setColor(n ? n.color : COLORS[0]);
@@ -85,7 +90,9 @@ export function freeSpot(w = 262, h = 140, top = SPOT_GAP) {
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   const id = form.id.value ? Number(form.id.value) : null;
-  const payload = { action: id ? 'update' : 'create', id, title: form.title.value, body: form.body.value, color: form.color.value };
+  const text = bodyEditor.getValue();
+  if (!text.trim()) { const box = $('formError'); box.textContent = 'Vul een notitie in'; box.hidden = false; bodyEditor.focus(); return; }
+  const payload = { action: id ? 'update' : 'create', id, title: form.title.value, body: text, color: form.color.value };
   if (!id) Object.assign(payload, freeSpot());
   else if (editBase) Object.assign(payload, { base: editBase, force: forceSave });
   try {
